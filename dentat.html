@@ -296,8 +296,10 @@
       cursor: pointer; font-family: inherit; transition: background .2s;
     }
     .cam-btn:hover { background: #f1f5f9; }
-    .img-preview { margin-top: 8px; display: flex; justify-content: center; }
-    .img-preview img { max-width: 100%; max-height: 100px; border-radius: 8px; object-fit: cover; }
+    .img-preview { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .img-thumb { position: relative; }
+    .img-thumb img { width: 80px; height: 80px; border-radius: 8px; object-fit: cover; cursor: pointer; }
+    .img-del { position: absolute; top: -6px; right: -6px; background: #ef4444; color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 13px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
     .coords-info { font-size: 11px; color: var(--text-muted); margin-top: 5px; font-family: monospace; }
     .status-select-wrap { position: relative; }
     .status-select-wrap::after { content: '▼'; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 10px; color: var(--text-muted); pointer-events: none; }
@@ -508,11 +510,17 @@
   <div class="stat-chip active" id="chip-5" onclick="openStatusList('5')" style="color:#7c3aed">
     <div class="dot" style="background:#7c3aed"></div>&gt;10 ngày <span class="cnt" id="cnt-5">0</span>
   </div>
+  <div class="stat-chip active" id="chip-2" onclick="openStatusList('2')" style="color:#db2777">
+    <div class="dot" style="background:#db2777"></div>Sự cố <span class="cnt" id="cnt-2">0</span>
+  </div>
   <div class="stat-chip active" id="chip-3" onclick="openStatusList('3')" style="color:#10b981">
     <div class="dot" style="background:#10b981"></div>LED BT <span class="cnt" id="cnt-3">0</span>
   </div>
   <div class="stat-chip active" id="chip-4" onclick="openStatusList('4')" style="color:#0ea5e9">
     <div class="dot" style="background:#0ea5e9"></div>HPS BT <span class="cnt" id="cnt-4">0</span>
+  </div>
+  <div class="stat-chip active" id="chip-6" onclick="openStatusList('6')" style="color:#059669">
+    <div class="dot" style="background:#059669"></div>Đã KP <span class="cnt" id="cnt-6">0</span>
   </div>
   <div class="stat-total" id="statTotal">Tổng: 0</div>
 </div>
@@ -629,8 +637,10 @@
             <option value="1">🔴 Đèn LED đang hư</option>
             <option value="7">🟠 Đèn HPS đang hư</option>
             <option value="5">🟣 Đèn hư quá 10 ngày</option>
+            <option value="2">🩷 Đang bị Sự cố</option>
             <option value="3">🟢 Đèn LED sáng bình thường</option>
             <option value="4">🔵 Đèn HPS sáng bình thường</option>
+            <option value="6">✅ Sự cố được khắc phục</option>
           </select>
         </div>
       </div>
@@ -661,7 +671,7 @@
 
       <div class="mpop-section-title">Ảnh hiện trường</div>
       <button class="cam-btn" onclick="triggerImageInput()">📷 Chụp / chọn ảnh</button>
-      <input id="fImageInput" type="file" accept="image/*" capture="environment" style="display:none" onchange="handleImageFile(event)">
+      <input id="fImageInput" type="file" accept="image/*" capture="environment" multiple style="display:none" onchange="handleImageFile(event)">
       <div class="img-preview" id="fImagePreview"></div>
     </div>
     <div class="mpop-footer">
@@ -721,11 +731,13 @@ const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ
 const MAX_IMG_LEN = 32767;
 
 const STATUS_CONFIG = {
-  '1': { label: 'Đèn LED đang hư',          color: '#ef4444', bg: '#fee2e2', emoji: '⚡', pulse: true },
+  '1': { label: 'Đèn LED đang hư',          color: '#ef4444', bg: '#fee2e2', emoji: '⚡', pulse: true  },
+  '2': { label: 'Đang bị Sự cố',            color: '#db2777', bg: '#fce7f3', emoji: '⚠', pulse: true  },
   '3': { label: 'Đèn LED sáng bình thường',  color: '#10b981', bg: '#d1fae5', emoji: '✓', pulse: false },
   '4': { label: 'Đèn HPS sáng bình thường',  color: '#0ea5e9', bg: '#e0f2fe', emoji: '✓', pulse: false },
   '5': { label: 'Đèn hư quá 10 ngày',        color: '#7c3aed', bg: '#ede9fe', emoji: '!!', pulse: true },
-  '7': { label: 'Đèn HPS đang hư',           color: '#f97316', bg: '#ffedd5', emoji: '⚡', pulse: true },
+  '6': { label: 'Sự cố được khắc phục',      color: '#059669', bg: '#d1fae5', emoji: '✔', pulse: false },
+  '7': { label: 'Đèn HPS đang hư',           color: '#f97316', bg: '#ffedd5', emoji: '⚡', pulse: true  },
 };
 
 // ── STATE ──
@@ -735,7 +747,7 @@ let loadedData = [];
 let editingIndex = null;
 let addMarkerMode = false;
 let pendingNewMarker = false;
-let markerImageDataUrl = '', markerImagePath = '';
+let markerImages = []; // [{dataUrl, path}] max 3
 let currentLocationMarker = null;
 let routeLine = null;
 let hiddenFilters = new Set();
@@ -1086,12 +1098,12 @@ async function uploadImageViaGas(dataUrl, soTru) {
 function createPopupContent(row, rowIndex) {
   const p = parseRow(row);
   const cfg = STATUS_CONFIG[p.trangThai] || { label: 'Không xác định', color: '#94a3b8', bg: '#f1f5f9', emoji: '❓' };
-  const imgUrl = normalizeImagePath(p.hinhAnh);
-  const avatarHtml = imgUrl
-    ? `<img class="pc-avatar" src="${imgUrl}" onclick="window.open('${imgUrl}','_blank')" title="Xem ảnh đầy đủ" onerror="this.outerHTML='<div class=\\'pc-avatar-ph\\'>💡</div>'">`
+  const imgUrls = (p.hinhAnh || '').split(';').map(s => s.trim()).filter(Boolean).map(normalizeImagePath);
+  const avatarHtml = imgUrls.length
+    ? imgUrls.map(u => `<img class="pc-avatar" src="${u}" onclick="window.open('${u}','_blank')" title="Xem ảnh đầy đủ" onerror="this.outerHTML='<div class=\\'pc-avatar-ph\\'>💡</div>'">`).join('')
     : `<div class="pc-avatar-ph">💡</div>`;
   const days = daysBetween(p.ngayPhatHien);
-  const broken = ['1','5','7'].includes(p.trangThai);
+  const broken = ['1','2','5','7'].includes(p.trangThai);
   const daysHtml = broken && days !== null
     ? `<div class="pc-days" style="background:${cfg.bg};color:${cfg.color}">⏱ ${days <= 0 ? 'Hôm nay' : days + ' ngày chưa sửa'}</div>`
     : (p.ngaySua ? `<div class="pc-days" style="background:#d1fae5;color:#065f46">✅ Đã sửa ${p.ngaySua}</div>` : '');
@@ -1316,7 +1328,7 @@ function openStatusList(status) {
     body.innerHTML = items.map(entry => {
       const p = parseRow(entry.row);
       const days = daysBetween(p.ngayPhatHien);
-      const broken = ['1','5','7'].includes(String(p.trangThai));
+      const broken = ['1','2','5','7'].includes(String(p.trangThai));
       const badge = broken && days !== null
         ? `<span class="sl-badge" style="background:${cfg.bg};color:${cfg.color}">${days <= 0 ? 'Hôm nay' : days + ' ngày'}</span>`
         : (p.ngaySua ? `<span class="sl-badge" style="background:#d1fae5;color:#065f46">Đã sửa</span>` : '');
@@ -1463,8 +1475,8 @@ function fillForm(row, lat, lon) {
     document.getElementById('fVatTuSua').value = p.vatTuSua;
     document.getElementById('fGhiChu').value = p.ghiChu;
     document.getElementById('fCoordsText').textContent = Number.isFinite(p.lat) ? `Tọa độ: ${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}` : 'Tọa độ: —';
-    markerImageDataUrl = p.hinhAnh; markerImagePath = normalizeImagePath(p.hinhAnh);
-    document.getElementById('fImagePreview').innerHTML = markerImageDataUrl ? `<img src="${markerImageDataUrl}" style="max-height:80px;border-radius:8px">` : '';
+    markerImages = (p.hinhAnh || '').split(';').map(s => s.trim()).filter(Boolean).map(s => ({ dataUrl: '', path: normalizeImagePath(s) }));
+    renderImagePreview();
   } else {
     const maxId = loadedData.reduce((m, r) => { const n = parseInt(parseRow(r).id); return Number.isFinite(n) ? Math.max(m, n) : m; }, 0);
     ['fSoTru','fTenTu','fCongSuat','fDuong','fPhuong','fNguoiPhatHien','fNguoiSua','fVatTuSua','fGhiChu'].forEach(id => document.getElementById(id).value = '');
@@ -1477,7 +1489,7 @@ function fillForm(row, lat, lon) {
     document.getElementById('fNgaySua').value = '';
     document.getElementById('fCoordsText').textContent = lat != null ? `Tọa độ: ${lat.toFixed(6)}, ${lon.toFixed(6)}` : 'Tọa độ: —';
     if (currentUser) document.getElementById('fNguoiPhatHien').value = currentUser.displayName || currentUser.username;
-    markerImageDataUrl = ''; markerImagePath = '';
+    markerImages = [];
     document.getElementById('fImagePreview').innerHTML = '';
     if (Number.isFinite(lat) && Number.isFinite(lon)) reverseGeocode(lat, lon);
   }
@@ -1488,7 +1500,7 @@ function fillForm(row, lat, lon) {
 
 function hideForm() {
   document.getElementById('markerForm').classList.remove('open');
-  editingIndex = null; markerImageDataUrl = ''; markerImagePath = '';
+  editingIndex = null; markerImages = [];
 }
 function cancelMarkerPopup() { hideForm(); }
 
@@ -1553,17 +1565,19 @@ async function saveMarkerPopup() {
   const orig = btn.textContent;
 
   // 1. Upload ảnh lên GitHub nếu có base64 mới
-  let finalImagePath = markerImagePath;
-  if (markerImageDataUrl && markerImageDataUrl.startsWith('data:image/')) {
+  const hasNew = markerImages.some(img => img.dataUrl && img.dataUrl.startsWith('data:image/'));
+  if (hasNew) {
     btn.disabled = true; btn.textContent = '⏳ Đang upload ảnh...';
-    try {
-      const uploaded = await uploadImageViaGas(markerImageDataUrl, soTru);
-      if (uploaded) { finalImagePath = uploaded; showToast('✅ Upload ảnh thành công'); }
-    } catch(e) {
-      showToast('⚠️ Không upload được ảnh: ' + e.message);
+    for (const img of markerImages) {
+      if (img.dataUrl && img.dataUrl.startsWith('data:image/')) {
+        try { img.path = await uploadImageViaGas(img.dataUrl, soTru) || ''; img.dataUrl = ''; }
+        catch(e) { showToast('⚠️ Không upload được ảnh: ' + e.message); }
+      }
     }
     btn.disabled = false; btn.textContent = orig;
+    showToast('✅ Upload ảnh thành công');
   }
+  const finalImagePath = markerImages.map(img => img.path).filter(Boolean).join(';');
 
   // 2. Build rowData
   const lat = parseFloat(document.getElementById('fLat').value);
@@ -1635,7 +1649,7 @@ async function quickFix(index) {
   if (isDemoUser()) { denyDemo(); return; }
   if (index < 0 || index >= loadedData.length) return;
   const p = parseRow(loadedData[index]);
-  const newStatus = p.loaiDen === 'HPS' ? '4' : '3';
+  const newStatus = p.trangThai === '2' ? '6' : (p.loaiDen === 'HPS' ? '4' : '3');
   const today = todayStr();
   const rowData = { ...loadedData[index] };
   applyFieldsToRow(rowData, { trangThai: newStatus, ngaySua: today });
@@ -1656,7 +1670,19 @@ async function quickFix(index) {
 }
 
 // ── IMAGE ──
-function triggerImageInput() { if (isDemoUser()) { denyDemo(); return; } const f = document.getElementById('fImageInput'); if (f) { f.value = null; f.click(); } }
+function triggerImageInput() {
+  if (isDemoUser()) { denyDemo(); return; }
+  if (markerImages.length >= 3) { showToast('Tối đa 3 ảnh'); return; }
+  const f = document.getElementById('fImageInput'); if (f) { f.value = null; f.click(); }
+}
+function renderImagePreview() {
+  const c = document.getElementById('fImagePreview');
+  c.innerHTML = markerImages.map((img, i) => {
+    const src = img.dataUrl || img.path;
+    return `<div class="img-thumb"><img src="${src}" onclick="window.open('${img.path||src}','_blank')" title="Xem ảnh"><button class="img-del" onclick="removeMarkerImage(${i})">✕</button></div>`;
+  }).join('');
+}
+function removeMarkerImage(i) { markerImages.splice(i, 1); renderImagePreview(); }
 function resizeImage(dataUrl, cb) {
   const img = new Image();
   img.onload = () => {
@@ -1676,17 +1702,22 @@ function resizeImage(dataUrl, cb) {
   img.src = dataUrl;
 }
 function handleImageFile(e) {
-  const file = e.target.files && e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => resizeImage(ev.target.result, (res, err) => {
-    if (res) {
-      markerImageDataUrl = res; markerImagePath = '';
-      document.getElementById('fImagePreview').innerHTML = `<img src="${res}" style="max-height:80px;border-radius:8px">`;
-      showToast('✅ Ảnh sẵn sàng');
-    } else { showToast('❌ ' + (err || 'Lỗi ảnh')); }
+  const files = e.target.files;
+  if (!files || !files.length) return;
+  const remaining = 3 - markerImages.length;
+  if (remaining <= 0) { showToast('Tối đa 3 ảnh'); return; }
+  const toProcess = Array.from(files).slice(0, remaining);
+  let done = 0;
+  toProcess.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = ev => resizeImage(ev.target.result, (res, err) => {
+      if (res) { markerImages.push({ dataUrl: res, path: '' }); }
+      else { showToast('❌ ' + (err || 'Lỗi ảnh')); }
+      done++;
+      if (done === toProcess.length) { renderImagePreview(); showToast(`✅ ${markerImages.length} ảnh sẵn sàng`); }
+    });
+    reader.readAsDataURL(file);
   });
-  reader.readAsDataURL(file);
 }
 
 // ── EXPORT EXCEL ──

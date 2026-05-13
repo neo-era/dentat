@@ -167,7 +167,7 @@
 <nav class="topbar">
   <a href="dentat.html" class="topbar-back">← Mở app</a>
   <span class="topbar-title">💡 Hướng dẫn sử dụng</span>
-  <span class="topbar-ver">v1.2</span>
+  <span class="topbar-ver">v1.3</span>
 </nav>
 
 <!-- HERO -->
@@ -359,6 +359,11 @@
           <div class="status-label" style="color:#ef4444">Đèn LED đang hư</div>
           <span class="status-tag" style="background:#ef4444;color:#fff">Mã 1</span>
         </div>
+        <div class="status-row" style="background:#fce7f3;border-color:#db2777">
+          <div class="pulse-demo" style="background:#db2777;color:#db2777"></div>
+          <div class="status-label" style="color:#db2777">Đang bị Sự cố</div>
+          <span class="status-tag" style="background:#db2777;color:#fff">Mã 2</span>
+        </div>
         <div class="status-row" style="background:#ffedd5;border-color:#f97316">
           <div class="pulse-demo" style="background:#f97316;color:#f97316"></div>
           <div class="status-label" style="color:#f97316">Đèn HPS đang hư</div>
@@ -378,6 +383,11 @@
           <div class="status-dot" style="background:#0ea5e9"></div>
           <div class="status-label" style="color:#0ea5e9">Đèn HPS sáng bình thường</div>
           <span class="status-tag" style="background:#0ea5e9;color:#fff">Mã 4</span>
+        </div>
+        <div class="status-row" style="background:#d1fae5;border-color:#059669">
+          <div class="status-dot" style="background:#059669"></div>
+          <div class="status-label" style="color:#059669">Sự cố được khắc phục</div>
+          <span class="status-tag" style="background:#059669;color:#fff">Mã 6</span>
         </div>
       </div>
       <hr class="soft">
@@ -432,8 +442,8 @@
         <div class="step">
           <div class="step-num">4</div>
           <div class="step-body">
-            <div class="step-title">Chụp ảnh hiện trường (tùy chọn)</div>
-            <div class="step-desc">Nhấn <strong>📷 Chụp / chọn ảnh</strong> để mở camera hoặc chọn ảnh từ thư viện. Ảnh sẽ tự động thu nhỏ và lưu kèm hồ sơ đèn.</div>
+            <div class="step-title">Chụp ảnh hiện trường (tùy chọn, tối đa 3 ảnh)</div>
+            <div class="step-desc">Nhấn <strong>📷 Chụp / chọn ảnh</strong> để mở camera hoặc chọn ảnh từ thư viện. Có thể chọn nhiều ảnh cùng lúc, tối đa <strong>3 ảnh</strong> mỗi hồ sơ. Mỗi ảnh hiển thị dạng thumbnail — nhấn <strong>✕</strong> trên thumbnail để xóa bớt ảnh trước khi lưu. Ảnh được tự động thu nhỏ và lưu kèm hồ sơ đèn, tên file cách nhau bằng dấu <strong>;</strong>.</div>
           </div>
         </div>
         <div class="step">
@@ -474,7 +484,7 @@
           <div class="step-num">1</div>
           <div class="step-body">
             <div class="step-title">Nhấn vào dot đèn trên bản đồ</div>
-            <div class="step-desc">Popup chi tiết hiện ra, gồm: ảnh, số trụ, trạng thái, địa chỉ, ngày phát hiện, người phát hiện, vật tư sửa, tọa độ GPS.</div>
+            <div class="step-desc">Popup chi tiết hiện ra, gồm: ảnh (tối đa 3 ảnh hiển thị cạnh nhau), số trụ, trạng thái, địa chỉ, ngày phát hiện, người phát hiện, vật tư sửa, tọa độ GPS.</div>
           </div>
         </div>
         <div class="step">
@@ -516,7 +526,7 @@
           <div class="step-num">1</div>
           <div class="step-body">
             <div class="step-title">Nhấn vào dot đèn → xem popup</div>
-            <div class="step-desc">Popup chi tiết hiện ra với nút <strong>✅ Đã sửa</strong> (chỉ hiện với đèn đang hư — mã 1, 5, 7).</div>
+            <div class="step-desc">Popup chi tiết hiện ra với nút <strong>✅ Đã sửa</strong> (chỉ hiện với đèn đang hư — mã 1, 2, 5, 7).</div>
           </div>
         </div>
         <div class="step">
@@ -524,7 +534,9 @@
           <div class="step-body">
             <div class="step-title">Nhấn "✅ Đã sửa"</div>
             <div class="step-desc">Ứng dụng tự động:<br>
-              • Đổi trạng thái: LED hư → <strong>LED bình thường (mã 3)</strong>, HPS hư → <strong>HPS bình thường (mã 4)</strong><br>
+              • LED hư (mã 1, 5) → <strong>LED bình thường (mã 3)</strong><br>
+              • HPS hư (mã 7) → <strong>HPS bình thường (mã 4)</strong><br>
+              • Đang bị Sự cố (mã 2) → <strong>Sự cố được khắc phục (mã 6)</strong><br>
               • Ghi ngày sửa = <strong>hôm nay</strong><br>
               • Cập nhật lên Data ngay lập tức</div>
           </div>
@@ -565,7 +577,7 @@
       <table class="tbl">
         <thead><tr><th>Bộ lọc</th><th>Mô tả</th></tr></thead>
         <tbody>
-          <tr><td><strong>Theo trạng thái</strong></td><td>Ẩn / hiện đèn theo mã trạng thái (1, 3, 4, 5, 7)</td></tr>
+          <tr><td><strong>Theo trạng thái</strong></td><td>Ẩn / hiện đèn theo mã trạng thái (1, 2, 3, 4, 5, 6, 7)</td></tr>
           <tr><td><strong>Theo loại đèn</strong></td><td>Chọn xem Tất cả / LED / HPS</td></tr>
           <tr><td><strong>Theo người phát hiện</strong></td><td>Lọc đèn do một nhân viên cụ thể báo cáo</td></tr>
           <tr><td><strong>Xóa bộ lọc</strong></td><td>Hiện nút "Xóa tất cả bộ lọc" khi đang lọc</td></tr>
@@ -682,7 +694,7 @@
         </div>
         <div class="faq-item">
           <div class="faq-q">Ảnh upload thất bại, làm thế nào?</div>
-          <div class="faq-a">Thử chụp ảnh có độ phân giải thấp hơn hoặc chọn ảnh nhỏ hơn. Ứng dụng tự resize ảnh xuống nhưng một số ảnh vẫn có thể quá lớn. Kiểm tra kết nối mạng ổn định trước khi lưu.</div>
+          <div class="faq-a">Thử chụp ảnh có độ phân giải thấp hơn hoặc chọn ảnh nhỏ hơn. Ứng dụng tự resize ảnh xuống nhưng một số ảnh vẫn có thể quá lớn. Kiểm tra kết nối mạng ổn định trước khi lưu. Lưu ý mỗi hồ sơ chỉ cho phép tối đa <strong>3 ảnh</strong> — nếu đã đủ 3, nút chụp sẽ thông báo "Tối đa 3 ảnh" và không mở thêm.</div>
         </div>
         <div class="faq-item">
           <div class="faq-q">Có dùng được offline không?</div>
