@@ -4,6 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Báo cáo sự cố — Đèn CSCC</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Báo cáo SC">
+  <link rel="apple-touch-icon" href="images/icon-192.png">
+  <meta name="theme-color" content="#0f172a">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -150,13 +156,72 @@
       .card { padding: 22px 24px; }
       #successCard { padding: 28px; }
     }
+
+    /* ── Install banner ── */
+    #installBanner {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 9999;
+      background: var(--navy); color: #fff;
+      padding: 14px var(--pad-x) calc(14px + var(--safe-bottom));
+      display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 -4px 24px rgba(0,0,0,.35);
+      transform: translateY(100%); transition: transform .35s cubic-bezier(.4,0,.2,1);
+    }
+    #installBanner.show { transform: translateY(0); }
+    #installBanner img { width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0; }
+    #installBanner .info { flex: 1; min-width: 0; }
+    #installBanner .info strong { display: block; font-size: 14px; font-weight: 700; }
+    #installBanner .info span { font-size: 12px; color: #94a3b8; }
+    #installBanner .actions { display: flex; gap: 8px; flex-shrink: 0; }
+    #installBanner .btn-install {
+      background: var(--orange); color: #fff; border: none; border-radius: 8px;
+      padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+    #installBanner .btn-dismiss {
+      background: transparent; color: #94a3b8; border: 1.5px solid #334155; border-radius: 8px;
+      padding: 8px 10px; font-size: 13px; cursor: pointer; font-family: inherit;
+    }
+    #iosTip {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 9999;
+      background: var(--navy); color: #fff;
+      padding: 16px var(--pad-x) calc(16px + var(--safe-bottom));
+      box-shadow: 0 -4px 24px rgba(0,0,0,.35);
+      transform: translateY(100%); transition: transform .35s cubic-bezier(.4,0,.2,1);
+      text-align: center;
+    }
+    #iosTip.show { transform: translateY(0); }
+    #iosTip p { font-size: 13px; line-height: 1.6; margin-bottom: 10px; color: #cbd5e1; }
+    #iosTip strong { color: #fff; }
+    #iosTip .btn-dismiss {
+      background: transparent; color: #94a3b8; border: 1.5px solid #334155; border-radius: 8px;
+      padding: 8px 18px; font-size: 13px; cursor: pointer; font-family: inherit;
+    }
   </style>
 </head>
 <body>
 
+<!-- Install banner Android/Chrome -->
+<div id="installBanner">
+  <img src="images/icon-192.png" alt="icon">
+  <div class="info">
+    <strong>Thêm vào màn hình chính</strong>
+    <span>Dùng nhanh hơn, không cần trình duyệt</span>
+  </div>
+  <div class="actions">
+    <button class="btn-install" onclick="doInstall()">Cài đặt</button>
+    <button class="btn-dismiss" onclick="dismissInstall()">Bỏ qua</button>
+  </div>
+</div>
+
+<!-- Hướng dẫn iOS -->
+<div id="iosTip">
+  <p>Để cài vào màn hình chính:<br>
+    Nhấn <strong>chia sẻ</strong> ↑ → chọn <strong>"Thêm vào màn hình chính"</strong></p>
+  <button class="btn-dismiss" onclick="dismissInstall()">Đã hiểu</button>
+</div>
+
 <div class="topbar">
   <h1>📋 Báo cáo sự cố</h1>
-  <a href="dentat.html">🗺 Bản đồ</a>
+
 </div>
 
 <div class="container">
@@ -167,7 +232,7 @@
     <p id="successMsg">Phiếu sự cố đã được lưu vào hệ thống.</p>
     <div class="actions">
       <button class="new" onclick="resetForNew()">➕ Báo cáo mới</button>
-      <a class="map" href="dentat.html">🗺 Mở bản đồ</a>
+      <button class="map" onclick="window.close()">✖ Thoát</button>
     </div>
   </div>
 
@@ -220,6 +285,7 @@
 'use strict';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0YAMrbBpNdTL0cmE_1LdQ7SJzeUW0J0VHhWpv3WqW9LvLyBTP8YV2nPzuuR27pJTZ8g/exec';
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?output=csv';
+const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/neo-era/dentat/main/';
 const MAX_IMG_LEN = 32767;
 
 let markerImages = []; // [{dataUrl, path}]
@@ -370,7 +436,8 @@ async function uploadImageViaGas(dataUrl, soTru) {
   if (!res.ok) throw new Error('HTTP ' + res.status);
   const data = JSON.parse(await res.text());
   if (data.status !== 'ok') throw new Error(data.message || 'Upload thất bại');
-  return data.path;
+  const p = data.path || '';
+  return p.startsWith('http') ? p : GITHUB_RAW_BASE + p.replace(/^\//, '');
 }
 
 // ── PHONE ──
@@ -441,7 +508,7 @@ async function submitReport() {
     duong: document.getElementById('fDuong').value.trim(),
     phuong: document.getElementById('fPhuong').value.trim(),
     ngayPhatHien: fromInputDate(document.getElementById('fNgayPhatHien').value),
-    nguoiPhatHien: document.getElementById('fNguoiPhatHien').value.trim(),
+    nguoiPhatHien: document.getElementById('fNguoiPhatHien').value.trim() || 'Người dân',
     hinhAnh: finalImagePath,
     ghiChu: document.getElementById('fGhiChu').value.trim(),
     vn2000x: vn.x ? Math.round(vn.x) : '',
@@ -479,6 +546,52 @@ function resetForNew() {
   fetchNextId();
   getGPS();
   document.getElementById('fSoTru').focus();
+}
+
+// ── PWA INSTALL ──
+let _deferredPrompt = null;
+
+const isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isInStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+const installDismissed = () => localStorage.getItem('installDismissed') === '1';
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _deferredPrompt = e;
+  if (!isInStandalone() && !installDismissed()) {
+    setTimeout(() => document.getElementById('installBanner').classList.add('show'), 1500);
+  }
+});
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('installBanner').classList.remove('show');
+  _deferredPrompt = null;
+  localStorage.setItem('installDismissed', '1');
+});
+
+function doInstall() {
+  if (!_deferredPrompt) return;
+  _deferredPrompt.prompt();
+  _deferredPrompt.userChoice.then(() => {
+    _deferredPrompt = null;
+    document.getElementById('installBanner').classList.remove('show');
+  });
+}
+
+function dismissInstall() {
+  document.getElementById('installBanner').classList.remove('show');
+  document.getElementById('iosTip').classList.remove('show');
+  localStorage.setItem('installDismissed', '1');
+}
+
+// iOS: hiện hướng dẫn thủ công lần đầu
+if (isIos() && !isInStandalone() && !installDismissed()) {
+  setTimeout(() => document.getElementById('iosTip').classList.add('show'), 1500);
+}
+
+// Đăng ký Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 </script>
 
