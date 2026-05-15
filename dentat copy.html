@@ -219,8 +219,6 @@
     .pc-row .pi { font-size: 14px; flex-shrink: 0; width: 20px; text-align: center; margin-top: 1px; }
     .pc-row .pk { color: var(--text-muted); font-weight: 600; white-space: nowrap; min-width: 64px; flex-shrink: 0; font-size: 12px; }
     .pc-row .pv { color: var(--text); line-height: 1.45; }
-    .pc-phone-btn { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 6px; background: #e0f2fe; color: #0369a1; text-decoration: none; font-size: 13px; margin-left: 4px; vertical-align: middle; }
-    .pc-phone-btn.zalo { background: #fce7f3; color: #db2777; }
     .pc-coords { background: #f8fafc; border-radius: 8px; padding: 5px 10px; font-size: 10px; color: var(--text-muted); font-family: monospace; margin-top: 8px; letter-spacing: .2px; }
     .pc-actions { display: grid; gap: 8px; padding: 12px 16px 16px; }
     .pc-actions.one   { grid-template-columns: 1fr; }
@@ -339,29 +337,6 @@
     .rpt-btn { flex: 1; padding: 12px; border-radius: 12px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
     .rpt-btn-outline { background: var(--bg); color: var(--text); border: 1.5px solid var(--border) !important; }
     .rpt-btn-primary { background: var(--orange); color: #fff; }
-
-    /* ── ZALO IMPORT MODAL ── */
-    #zaloModal {
-      position: fixed; inset: 0; background: rgba(15,23,42,.6); backdrop-filter: blur(4px);
-      z-index: 7000; display: none; align-items: flex-end; justify-content: center;
-      padding-bottom: calc(var(--bottomnav-h) + var(--safe-bottom));
-    }
-    #zaloModal.open { display: flex; }
-    #zaloCard {
-      background: var(--white); border-radius: 22px 22px 0 0; padding: 20px 18px 24px;
-      width: 100%; max-width: 480px; box-shadow: var(--shadow-lg);
-      animation: slideUp .3s cubic-bezier(.4,0,.2,1); max-height: 92vh; overflow-y: auto;
-    }
-    #zaloCard h3 { font-size: 16px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
-    #zaloCard > p { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; }
-    .zalo-lbl { display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin: 10px 0 4px; text-transform: uppercase; }
-    #zaloText, #zaloMaps {
-      width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 9px;
-      font-size: 13px; font-family: inherit; outline: none; background: var(--white); color: var(--text);
-      box-sizing: border-box; resize: vertical;
-    }
-    #zaloText { min-height: 80px; }
-    #zaloText:focus, #zaloMaps:focus { border-color: var(--orange); }
 
     /* ── SEARCH DROPDOWN ── */
     #searchDrop {
@@ -619,7 +594,6 @@
       <button id="sbBtnExcel" class="sb-btn" onclick="saveMarkerData();closeSidebar()"><span class="bi">💾</span>Xuất Excel</button>
       <button id="sbBtnCad" class="sb-btn" onclick="exportMarkersToCad();closeSidebar()"><span class="bi">📐</span>Xuất CAD (.dxf)</button>
       <button id="sbBtnReport" class="sb-btn" onclick="openReportModal();closeSidebar()"><span class="bi">📊</span>Báo cáo hàng ngày</button>
-      <button id="sbBtnZalo" class="sb-btn" onclick="openZaloImport();closeSidebar()"><span class="bi">📥</span>Nhập từ Zalo</button>
       <button class="sb-btn" onclick="window.open('huongdan.html','_blank')"><span class="bi">📖</span>Hướng dẫn sử dụng</button>
       <button class="sb-btn logout" onclick="logout()"><span class="bi">🚪</span>Đăng xuất</button>
     </div>
@@ -688,7 +662,6 @@
         <div class="fg"><label>Ngày phát hiện</label><input id="fNgayPhatHien" type="date"></div>
         <div class="fg"><label>Người phát hiện</label><input id="fNguoiPhatHien" type="text" placeholder="Tên người báo cáo"></div>
       </div>
-      <div class="fg"><label>Số điện thoại người báo</label><input id="fDienThoai" type="tel" inputmode="tel" placeholder="VD: 0989725507"></div>
       <div class="form-row">
         <div class="fg"><label>Ngày sửa xong</label><input id="fNgaySua" type="date"></div>
         <div class="fg"><label>Người sửa</label><input id="fNguoiSua" type="text" placeholder="Tên người sửa chữa"></div>
@@ -727,37 +700,6 @@
     <div class="rpt-btn-row">
       <button class="rpt-btn rpt-btn-outline" onclick="closeReportModal()">Hủy</button>
       <button class="rpt-btn rpt-btn-primary" onclick="exportReport()">📥 Xuất Excel</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── ZALO IMPORT MODAL ── -->
-<div id="zaloModal">
-  <div id="zaloCard">
-    <h3>📥 Nhập từ tin nhắn Zalo</h3>
-    <p>Paste tin nhắn + link Google Maps + ảnh. Hệ thống tự tách số trụ/tuyến/tọa độ và tạo phiếu trạng thái <strong>Đang bị Sự cố</strong>.</p>
-
-    <label class="zalo-lbl">Nội dung tin nhắn</label>
-    <textarea id="zaloText" rows="4" placeholder="VD: Tuyến 73 trụ 5 mất điện 3 hôm nay rồi..." oninput="zaloUpdatePreview()"></textarea>
-
-    <label class="zalo-lbl">Số ĐT người báo (tùy chọn)</label>
-    <input id="zaloPhone" type="tel" inputmode="tel" placeholder="VD: 0989725507" oninput="zaloUpdatePreview()">
-
-    <label class="zalo-lbl">Link Google Maps hoặc tọa độ (lat, lon)</label>
-    <input id="zaloMaps" type="text" placeholder="https://maps.google.com/?q=10.5,106.5 hoặc 10.5, 106.5" oninput="zaloUpdatePreview()">
-
-    <label class="zalo-lbl">Ảnh hiện trường (tối đa 3)</label>
-    <button class="cam-btn" type="button" onclick="triggerZaloImage()">📷 Chụp / chọn ảnh</button>
-    <input id="zaloImageInput" type="file" accept="image/*" multiple style="display:none" onchange="handleZaloImage(event)">
-    <div class="img-preview" id="zaloImagePreview"></div>
-
-    <div class="rpt-preview" id="zaloPreview">
-      <div style="font-size:12px;color:var(--text-muted);text-align:center">Nhập nội dung để xem kết quả phân tích</div>
-    </div>
-
-    <div class="rpt-btn-row">
-      <button class="rpt-btn rpt-btn-outline" onclick="closeZaloImport()">Hủy</button>
-      <button class="rpt-btn rpt-btn-primary" onclick="applyZaloImport()">✓ Tạo phiếu</button>
     </div>
   </div>
 </div>
@@ -1042,7 +984,6 @@ const FIELDS = {
   ghiChu:         [16, 'Ghi chú','ghi chu','ghiChu'],
   vn2000x:        [17, 'VN2000-X','VN2000X','vn2000x'],
   vn2000y:        [18, 'VN2000-Y','VN2000Y','vn2000y'],
-  dienThoai:      [19, 'Số điện thoại','so dien thoai','sdt','phone','dienThoai'],
 };
 
 function getVal(row, keys, fb = '') {
@@ -1075,7 +1016,6 @@ function parseRow(row) {
     nguoiSua: g('nguoiSua'),
     vatTuSua: g('vatTuSua'), hinhAnh: g('hinhAnh'), ghiChu: g('ghiChu'),
     vn2000x: g('vn2000x'), vn2000y: g('vn2000y'),
-    dienThoai: g('dienThoai'),
   };
 }
 function parseMarkerRow(row) { return parseRow(row); }
@@ -1105,17 +1045,10 @@ function applyFieldsToRow(row, updates) {
 function rowToArray(row) {
   const p = parseRow(row);
   return [p.id,p.soTru,p.tenTu,p.lat,p.lon,p.loaiDen,p.congSuat,p.trangThai,p.duong,p.phuong,
-          p.ngayPhatHien,p.nguoiPhatHien,p.ngaySua,p.nguoiSua,p.vatTuSua,p.hinhAnh,p.ghiChu,p.vn2000x,p.vn2000y,p.dienThoai];
+          p.ngayPhatHien,p.nguoiPhatHien,p.ngaySua,p.nguoiSua,p.vatTuSua,p.hinhAnh,p.ghiChu,p.vn2000x,p.vn2000y];
 }
 
 const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/neo-era/dentat/main/';
-function normalizePhone(phone) {
-  if (!phone) return '';
-  let p = String(phone).replace(/[\s\-().]/g, '');
-  if (p.startsWith('+84')) p = '0' + p.slice(3);
-  else if (p.startsWith('84') && p.length === 11) p = '0' + p.slice(2);
-  return p;
-}
 function normalizeImagePath(img) {
   if (!img || typeof img !== 'string') return '';
   const t = img.trim();
@@ -1180,10 +1113,6 @@ function createPopupContent(row, rowIndex) {
   if (p.tenTu) rows.push(`<div class="pc-row"><span class="pi">🗄</span><span class="pk">Tủ điều khiển</span><span class="pv">${p.tenTu}</span></div>`);
   if (p.duong || p.phuong) rows.push(`<div class="pc-row"><span class="pi">📍</span><span class="pk">Địa chỉ</span><span class="pv">${[p.duong, p.phuong].filter(Boolean).join(', ')}</span></div>`);
   if (p.ngayPhatHien || p.nguoiPhatHien) rows.push(`<div class="pc-row"><span class="pi">🗓</span><span class="pk">Phát hiện</span><span class="pv">${[p.ngayPhatHien, p.nguoiPhatHien].filter(Boolean).join(' · ')}</span></div>`);
-  if (p.dienThoai) {
-    const ph = normalizePhone(p.dienThoai);
-    rows.push(`<div class="pc-row"><span class="pi">📱</span><span class="pk">Số ĐT</span><span class="pv">${p.dienThoai} <a href="tel:${ph}" class="pc-phone-btn" title="Gọi điện">📞</a> <a href="https://zalo.me/${ph}" target="_blank" rel="noopener" class="pc-phone-btn zalo" title="Nhắn Zalo">🩷</a></span></div>`);
-  }
   if (p.ngaySua || p.nguoiSua) rows.push(`<div class="pc-row"><span class="pi">🔨</span><span class="pk">Đã sửa</span><span class="pv">${[p.ngaySua, p.nguoiSua].filter(Boolean).join(' · ')}</span></div>`);
   if (p.vatTuSua) rows.push(`<div class="pc-row"><span class="pi">🔧</span><span class="pk">Vật tư</span><span class="pv">${p.vatTuSua}</span></div>`);
   if (p.ghiChu) rows.push(`<div class="pc-row"><span class="pi">📝</span><span class="pk">Ghi chú</span><span class="pv">${p.ghiChu}</span></div>`);
@@ -1544,14 +1473,13 @@ function fillForm(row, lat, lon) {
     document.getElementById('fNgaySua').value = toInputDate(p.ngaySua);
     document.getElementById('fNguoiSua').value = p.nguoiSua;
     document.getElementById('fVatTuSua').value = p.vatTuSua;
-    document.getElementById('fDienThoai').value = p.dienThoai || '';
     document.getElementById('fGhiChu').value = p.ghiChu;
     document.getElementById('fCoordsText').textContent = Number.isFinite(p.lat) ? `Tọa độ: ${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}` : 'Tọa độ: —';
     markerImages = (p.hinhAnh || '').split(';').map(s => s.trim()).filter(Boolean).map(s => ({ dataUrl: '', path: normalizeImagePath(s) }));
     renderImagePreview();
   } else {
     const maxId = loadedData.reduce((m, r) => { const n = parseInt(parseRow(r).id); return Number.isFinite(n) ? Math.max(m, n) : m; }, 0);
-    ['fSoTru','fTenTu','fCongSuat','fDuong','fPhuong','fNguoiPhatHien','fNguoiSua','fVatTuSua','fGhiChu','fDienThoai'].forEach(id => document.getElementById(id).value = '');
+    ['fSoTru','fTenTu','fCongSuat','fDuong','fPhuong','fNguoiPhatHien','fNguoiSua','fVatTuSua','fGhiChu'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('fId').value = maxId + 1;
     document.getElementById('fLoaiDen').value = '';
     document.getElementById('fTrangThai').value = '1';
@@ -1675,7 +1603,6 @@ async function saveMarkerPopup() {
     ghiChu: document.getElementById('fGhiChu').value.trim(),
     vn2000x: vn.x ? Math.round(vn.x) : '',
     vn2000y: vn.y ? Math.round(vn.y) : '',
-    dienThoai: document.getElementById('fDienThoai').value.trim(),
   };
 
   btn.disabled = true; btn.textContent = '⌛ Đang lưu...';
@@ -1793,143 +1720,11 @@ function handleImageFile(e) {
   });
 }
 
-// ── ZALO IMPORT ──
-let zaloImages = []; // [{dataUrl, path}] max 3, transferred to markerImages on Tạo phiếu
-
-function openZaloImport() {
-  if (isDemoUser()) { denyDemo(); return; }
-  document.getElementById('zaloText').value = '';
-  document.getElementById('zaloMaps').value = '';
-  document.getElementById('zaloPhone').value = '';
-  zaloImages = [];
-  renderZaloImagePreview();
-  zaloUpdatePreview();
-  document.getElementById('zaloModal').classList.add('open');
-}
-function closeZaloImport() { document.getElementById('zaloModal').classList.remove('open'); }
-
-function triggerZaloImage() {
-  if (zaloImages.length >= 3) { showToast('Tối đa 3 ảnh'); return; }
-  const f = document.getElementById('zaloImageInput'); if (f) { f.value = null; f.click(); }
-}
-function handleZaloImage(e) {
-  const files = e.target.files;
-  if (!files || !files.length) return;
-  const remaining = 3 - zaloImages.length;
-  if (remaining <= 0) { showToast('Tối đa 3 ảnh'); return; }
-  const toProcess = Array.from(files).slice(0, remaining);
-  let done = 0;
-  toProcess.forEach(file => {
-    const reader = new FileReader();
-    reader.onload = ev => resizeImage(ev.target.result, (res, err) => {
-      if (res) zaloImages.push({ dataUrl: res, path: '' });
-      else showToast('❌ ' + (err || 'Lỗi ảnh'));
-      done++;
-      if (done === toProcess.length) { renderZaloImagePreview(); zaloUpdatePreview(); }
-    });
-    reader.readAsDataURL(file);
-  });
-}
-function renderZaloImagePreview() {
-  const c = document.getElementById('zaloImagePreview');
-  c.innerHTML = zaloImages.map((img, i) =>
-    `<div class="img-thumb"><img src="${img.dataUrl}"><button class="img-del" onclick="removeZaloImage(${i})">✕</button></div>`
-  ).join('');
-}
-function removeZaloImage(i) { zaloImages.splice(i, 1); renderZaloImagePreview(); zaloUpdatePreview(); }
-
-// Tách tọa độ từ link Google Maps hoặc text
-function parseLatLonFromText(text) {
-  if (!text) return null;
-  // @lat,lon (Google Maps URL)
-  let m = text.match(/@(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/);
-  if (m) return { lat: parseFloat(m[1]), lon: parseFloat(m[2]) };
-  // ?q=lat,lon | ?ll=lat,lon | destination=lat,lon | center=lat,lon
-  m = text.match(/[?&](?:q|ll|destination|center|sll)=(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/);
-  if (m) return { lat: parseFloat(m[1]), lon: parseFloat(m[2]) };
-  // !3dLAT!4dLON (Google Maps long form)
-  const mLat = text.match(/!3d(-?\d{1,3}\.\d+)/);
-  const mLon = text.match(/!4d(-?\d{1,3}\.\d+)/);
-  if (mLat && mLon) return { lat: parseFloat(mLat[1]), lon: parseFloat(mLon[1]) };
-  // Plain "lat, lon" trong text
-  m = text.match(/(?:^|\s|=|\/|:)(-?\d{1,2}\.\d{4,}),\s*(-?\d{2,3}\.\d{4,})/);
-  if (m) return { lat: parseFloat(m[1]), lon: parseFloat(m[2]) };
-  return null;
-}
-
-// Tách số trụ + tuyến từ tin nhắn
-function parseZaloMessage(text) {
-  const result = { soTru: '', tuyen: '' };
-  if (!text) return result;
-  let m = text.match(/(?:trụ|cột|tru|cot)\s*(?:số\s*)?([A-Za-z0-9\-\/]+)/i);
-  if (m) result.soTru = m[1].trim();
-  m = text.match(/tuyến\s*([A-Za-z0-9\-\/]+)/i);
-  if (m) result.tuyen = m[1].trim();
-  return result;
-}
-
-function zaloUpdatePreview() {
-  const text = document.getElementById('zaloText').value.trim();
-  const maps = document.getElementById('zaloMaps').value.trim();
-  const phone = document.getElementById('zaloPhone').value.trim();
-  const ll = parseLatLonFromText(maps) || parseLatLonFromText(text);
-  const parsed = parseZaloMessage(text);
-  const isShortLink = /(?:maps\.app\.goo\.gl|goo\.gl\/maps)/i.test(maps);
-  const el = document.getElementById('zaloPreview');
-  if (!text && !maps && !phone && !zaloImages.length) {
-    el.innerHTML = `<div style="font-size:12px;color:var(--text-muted);text-align:center">Nhập nội dung để xem kết quả phân tích</div>`;
-    return;
-  }
-  const rows = [];
-  rows.push(`<div class="rpt-preview-row"><span>🏷 Số trụ:</span><strong>${parsed.soTru || '—'}</strong></div>`);
-  rows.push(`<div class="rpt-preview-row"><span>📍 Tuyến:</span><strong>${parsed.tuyen ? 'Tuyến ' + parsed.tuyen : '—'}</strong></div>`);
-  if (ll) rows.push(`<div class="rpt-preview-row"><span>📡 Tọa độ:</span><strong>${ll.lat.toFixed(6)}, ${ll.lon.toFixed(6)}</strong></div>`);
-  else if (isShortLink) rows.push(`<div class="rpt-preview-row" style="color:#dc2626"><span>⚠</span><strong>Link rút gọn — mở link trong trình duyệt rồi copy URL đầy đủ</strong></div>`);
-  else if (maps) rows.push(`<div class="rpt-preview-row" style="color:#dc2626"><span>⚠</span><strong>Không nhận diện được tọa độ</strong></div>`);
-  else rows.push(`<div class="rpt-preview-row"><span>📡 Tọa độ:</span><strong>— (sẽ nhập thủ công)</strong></div>`);
-  if (phone) rows.push(`<div class="rpt-preview-row"><span>📱 SĐT:</span><strong>${normalizePhone(phone)}</strong></div>`);
-  rows.push(`<div class="rpt-preview-row"><span>🩷 Trạng thái:</span><strong style="color:#db2777">Đang bị Sự cố (mã 2)</strong></div>`);
-  rows.push(`<div class="rpt-preview-row"><span>📷 Ảnh:</span><strong>${zaloImages.length}/3</strong></div>`);
-  el.innerHTML = rows.join('');
-}
-
-function applyZaloImport() {
-  if (isDemoUser()) { denyDemo(); return; }
-  const text = document.getElementById('zaloText').value.trim();
-  const maps = document.getElementById('zaloMaps').value.trim();
-  const phone = document.getElementById('zaloPhone').value.trim();
-  if (!text && !maps && !phone && !zaloImages.length) { showToast('Nhập ít nhất tin nhắn, link, SĐT hoặc ảnh'); return; }
-  const ll = parseLatLonFromText(maps) || parseLatLonFromText(text);
-  const parsed = parseZaloMessage(text);
-
-  // Mở form marker mới với tọa độ (nếu có)
-  showFormAt(ll ? ll.lat : null, ll ? ll.lon : null);
-
-  // Pre-fill các trường (chờ form mở xong)
-  setTimeout(() => {
-    if (parsed.soTru) document.getElementById('fSoTru').value = parsed.soTru;
-    document.getElementById('fTrangThai').value = '2';
-    if (phone) document.getElementById('fDienThoai').value = normalizePhone(phone);
-    const noteEl = document.getElementById('fGhiChu');
-    const noteLines = [];
-    if (parsed.tuyen) noteLines.push('Tuyến ' + parsed.tuyen);
-    if (text) noteLines.push('[Báo từ Zalo] ' + text);
-    noteEl.value = noteLines.join('\n');
-    if (zaloImages.length) {
-      markerImages = zaloImages.map(i => ({ ...i }));
-      renderImagePreview();
-    }
-    zaloImages = [];
-    closeZaloImport();
-    showToast('✓ Đã tạo phiếu nháp — kiểm tra và bấm Lưu');
-  }, 80);
-}
-
 // ── EXPORT EXCEL ──
 function saveMarkerData() {
   if (isDemoUser()) { denyDemo(); return; }
   if (!loadedData.length) { showToast('Không có dữ liệu để lưu'); return; }
-  const header = ['ID','Số trụ','Tên tủ','latitude','lontitude','Loại đèn','Công suất','Trang thai','Đường','Phường','Ngày phát hiện','Người phát hiện','Ngày sửa','Người sửa','Vật tư sửa','HÌnh ảnh','Ghi chú','VN2000-X','VN2000-Y','Số điện thoại'];
+  const header = ['ID','Số trụ','Tên tủ','latitude','lontitude','Loại đèn','Công suất','Trang thai','Đường','Phường','Ngày phát hiện','Người phát hiện','Ngày sửa','Người sửa','Vật tư sửa','HÌnh ảnh','Ghi chú','VN2000-X','VN2000-Y'];
   const ws = XLSX.utils.aoa_to_sheet([header, ...loadedData.map(rowToArray)]);
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Danh sách đèn');
   XLSX.writeFile(wb, `dentat-${new Date().toLocaleDateString('vi-VN').replace(/\//g,'-')}.xlsx`);

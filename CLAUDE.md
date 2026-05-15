@@ -5,6 +5,7 @@
 ## Kiến trúc
 
 - **`dentat.html`** — toàn bộ frontend (HTML + CSS + JS gộp 1 file)
+- **`bcsc.html`** — trang báo cáo sự cố độc lập (form-only, không bản đồ); dùng cùng `GOOGLE_SCRIPT_URL` + `GOOGLE_SHEET_CSV_URL`; `fetchNextId` lấy max ID từ CSV; mặc định trạng thái `2`
 - **`sw.js`** — Service Worker (cache static + tile bản đồ)
 - **`manifest.json`** — PWA manifest (icon 192/512)
 - **`gas.js`** — Google Apps Script deploy làm Web App (backend proxy)
@@ -16,6 +17,7 @@
 - **Google Apps Script**: ghi dữ liệu (thêm/sửa), upload ảnh lên GitHub repo `images/`
 - Sheet `DanhSachDen` — dữ liệu đèn; Sheet `TaiKhoan` — tài khoản người dùng
 - Ảnh lưu tại `images/<ten>-<timestamp>.jpg`, nhiều ảnh nối bằng dấu `;`
+- **20 cột Sheet** (theo thứ tự, định nghĩa trong `FIELDS` của `dentat.html` + `FIELD_MAP` của `gas.js`): ID, Số trụ, Tên tủ, latitude, lontitude, Loại đèn, Công suất, Trang thai, Đường, Phường, Ngày phát hiện, Người phát hiện, Ngày sửa, Người sửa, Vật tư sửa, HÌnh ảnh, Ghi chú, VN2000-X, VN2000-Y, **Số điện thoại**
 
 ## Trạng thái đèn (`STATUS_CONFIG`)
 
@@ -47,6 +49,8 @@
 - Xuất CAD: file `.dxf` tọa độ VN2000 (UTM, GRS80)
 - Nhập từ Excel `.xlsx/.xls/.csv`
 - Bộ lọc nâng cao: trạng thái, loại đèn (LED/HPS), người phát hiện
+- **Nhập từ Zalo**: paste tin nhắn + link Google Maps + SĐT + ảnh → parser tự tách số trụ, tuyến, tọa độ (regex `parseLatLonFromText`, `parseZaloMessage`), mở form marker pre-fill với mã trạng thái 2 (Đang bị Sự cố). Lưu ý: link rút gọn `maps.app.goo.gl` không parse client-side được.
+- **Số điện thoại + liên hệ Zalo**: form có trường SĐT người báo, popup hiển thị 2 nút `📞 tel:<phone>` (gọi điện) và `🩷 https://zalo.me/<phone>` (mở chat Zalo). Hàm `normalizePhone` chuẩn hóa: bỏ space/dash, `+84` → `0`.
 
 ## Phân quyền
 

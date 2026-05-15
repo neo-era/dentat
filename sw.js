@@ -1,9 +1,10 @@
-const CACHE_STATIC = 'dentat-static-v1';
+const CACHE_STATIC = 'dentat-static-v2';
 const CACHE_TILES  = 'dentat-tiles-v1';
 const MAX_TILES    = 200;
 
 const STATIC_ASSETS = [
   './dentat.html',
+  './bcsc.html',
   './manifest.json',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
@@ -60,7 +61,7 @@ self.addEventListener('fetch', e => {
   }
 
   // Network-first cho HTML (luôn lấy phiên bản mới nhất, fallback cache khi offline)
-  if (url.endsWith('dentat.html') || url.endsWith('/Den%20tat/') || url.endsWith('/Den%20tat')) {
+  if (url.endsWith('dentat.html') || url.endsWith('bcsc.html') || url.endsWith('huongdan.html') || url.endsWith('/Den%20tat/') || url.endsWith('/Den%20tat')) {
     e.respondWith(
       fetch(e.request)
         .then(res => {

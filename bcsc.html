@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Báo cáo sự cố — Đèn CSCC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --navy: #0f172a; --orange: #f97316; --pink: #db2777;
+      --green: #10b981; --sky: #0ea5e9; --red: #ef4444;
+      --text: #1e293b; --text-muted: #64748b; --border: #e2e8f0; --bg: #f8fafc; --white: #fff;
+      --safe-top: env(safe-area-inset-top); --safe-bottom: env(safe-area-inset-bottom);
+      --pad-x: clamp(12px, 4vw, 18px);
+      --pad-card: clamp(12px, 3.5vw, 16px);
+    }
+    html { -webkit-text-size-adjust: 100%; }
+    html, body { font-family: 'Inter', system-ui, -apple-system, sans-serif; color: var(--text); background: var(--bg); min-height: 100vh; min-height: 100dvh; overflow-x: hidden; }
+    body { padding-bottom: calc(96px + var(--safe-bottom)); /* chừa chỗ cho submit-btn sticky */ }
+
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      background: linear-gradient(135deg, var(--navy), #1e3a5f);
+      color: #fff; padding: calc(12px + var(--safe-top)) var(--pad-x) 12px;
+      display: flex; align-items: center; gap: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
+    .topbar h1 {
+      font-size: clamp(14px, 4.2vw, 17px); font-weight: 800; flex: 1; min-width: 0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      background: linear-gradient(135deg,#fbbf24,#f97316); -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    }
+    .topbar a {
+      color: rgba(255,255,255,.9); text-decoration: none; font-size: 12px; font-weight: 600;
+      padding: 8px 12px; border-radius: 8px; background: rgba(255,255,255,.12);
+      flex-shrink: 0; min-height: 36px; display: inline-flex; align-items: center;
+    }
+    .topbar a:active { background: rgba(255,255,255,.22); }
+
+    .container { max-width: 560px; margin: 0 auto; padding: 8px var(--pad-x) 0; }
+    .card { background: var(--white); border-radius: 14px; padding: var(--pad-card); margin-bottom: 6px; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+
+    .section-title {
+      font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: .08em;
+      padding-bottom: 8px; border-bottom: 1.5px solid var(--border); margin-bottom: 10px;
+    }
+    .fg { margin-bottom: 8px; }
+    .fg:last-child { margin-bottom: 0; }
+    .fg label { display: block; font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
+    /* font-size ≥ 16px để iOS không zoom khi focus input */
+    .fg input, .fg select, .fg textarea {
+      width: 100%; padding: 11px 12px; border: 1.5px solid var(--border); border-radius: 9px;
+      font-size: 16px; font-family: inherit; background: var(--white); color: var(--text); outline: none;
+      transition: border-color .15s; min-height: 44px;
+    }
+    .fg input:focus, .fg select:focus, .fg textarea:focus { border-color: var(--orange); }
+    .fg input[readonly] { background: var(--bg); color: var(--text-muted); }
+    .fg textarea { resize: vertical; min-height: 72px; line-height: 1.45; }
+    .fg select {
+      appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .loc-btn {
+      width: 100%; padding: 10px; border: 1.5px dashed var(--orange); background: #fff7ed; color: var(--orange);
+      border-radius: 9px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+      margin: 0 0 4px; min-height: 42px; -webkit-tap-highlight-color: rgba(249,115,22,.15);
+    }
+    .loc-btn:disabled { opacity: .6; }
+    .loc-btn:active { background: #ffedd5; }
+    .coords-info { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; font-family: monospace; word-break: break-all; }
+
+    .cam-btn {
+      width: 100%; padding: 14px; border: 1.5px dashed var(--border); background: var(--bg); color: var(--text);
+      border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; min-height: 48px;
+    }
+    .cam-btn:active { background: #e2e8f0; }
+    .img-preview { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .img-preview:empty { margin-top: 0; }
+    .img-thumb { position: relative; }
+    .img-thumb img { width: clamp(72px, 22vw, 88px); height: clamp(72px, 22vw, 88px); border-radius: 8px; object-fit: cover; display: block; }
+    .img-del {
+      position: absolute; top: -6px; right: -6px; background: var(--red); color: #fff;
+      border: none; border-radius: 50%; width: 26px; height: 26px; font-size: 14px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; padding: 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,.2);
+    }
+
+    /* Submit sticky cuối màn hình — luôn trong tầm ngón cái */
+    .submit-wrap {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
+      background: linear-gradient(180deg, rgba(248,250,252,0) 0%, var(--bg) 30%);
+      padding: 16px var(--pad-x) calc(12px + var(--safe-bottom));
+      pointer-events: none;
+    }
+    .submit-btn {
+      width: 100%; max-width: 560px; margin: 0 auto; display: block; pointer-events: auto;
+      padding: 15px; background: linear-gradient(135deg, var(--orange), #ea580c); color: #fff;
+      border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit;
+      box-shadow: 0 6px 20px rgba(249,115,22,.4); min-height: 52px;
+    }
+    .submit-btn:active { transform: scale(.98); }
+    .submit-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+    #toast {
+      position: fixed; bottom: calc(20px + var(--safe-bottom)); left: 50%; transform: translateX(-50%) translateY(150%);
+      background: var(--navy); color: #fff; padding: 12px 20px; border-radius: 12px; font-size: 13px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.2); z-index: 9999; transition: transform .3s;
+      max-width: 90vw; text-align: center;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    #successCard {
+      display: none; background: linear-gradient(135deg, #d1fae5, #a7f3d0); border-radius: 14px;
+      padding: 20px; margin-bottom: 14px; text-align: center;
+    }
+    #successCard.show { display: block; }
+    #successCard .ok { font-size: 36px; margin-bottom: 8px; }
+    #successCard h2 { font-size: 17px; color: #065f46; margin-bottom: 4px; }
+    #successCard p { font-size: 13px; color: #047857; margin-bottom: 14px; }
+    #successCard .actions { display: flex; gap: 10px; }
+    #successCard button, #successCard a {
+      flex: 1; padding: 11px; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer;
+      text-align: center; text-decoration: none; border: none; font-family: inherit;
+    }
+    #successCard .new { background: var(--orange); color: #fff; }
+    #successCard .map { background: var(--white); color: var(--navy); border: 1.5px solid var(--border); }
+
+    /* ── Màn hình rất nhỏ (iPhone SE 1st gen, Galaxy Fold đóng) ── */
+    @media (max-width: 360px) {
+      .form-row { grid-template-columns: 1fr; gap: 8px; }
+      .card { padding: 14px; }
+      .topbar a { padding: 6px 10px; font-size: 11px; }
+      .img-thumb img { width: 64px; height: 64px; }
+    }
+
+    /* ── Landscape mobile — hạ chiều cao topbar + sticky submit ── */
+    @media (max-height: 500px) and (orientation: landscape) {
+      .topbar { padding-top: calc(8px + var(--safe-top)); padding-bottom: 8px; }
+      .submit-wrap { padding: 8px var(--pad-x) calc(8px + var(--safe-bottom)); }
+      body { padding-bottom: calc(76px + var(--safe-bottom)); }
+    }
+
+    /* ── Tablet / desktop — giữ form ở giữa, không quá rộng ── */
+    @media (min-width: 768px) {
+      .container { padding: 24px 20px 0; }
+      .card { padding: 22px 24px; }
+      #successCard { padding: 28px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>📋 Báo cáo sự cố</h1>
+  <a href="dentat.html">🗺 Bản đồ</a>
+</div>
+
+<div class="container">
+
+  <div id="successCard">
+    <div class="ok">✅</div>
+    <h2>Đã gửi báo cáo</h2>
+    <p id="successMsg">Phiếu sự cố đã được lưu vào hệ thống.</p>
+    <div class="actions">
+      <button class="new" onclick="resetForNew()">➕ Báo cáo mới</button>
+      <a class="map" href="dentat.html">🗺 Mở bản đồ</a>
+    </div>
+  </div>
+
+  <!-- TẤT CẢ TRONG 1 CARD -->
+  <div class="card">
+    <input id="fNgayPhatHien" type="hidden">
+    <div class="fg"><label>Số trụ/ Số nhà *</label><input id="fSoTru" type="text" placeholder="VD: A-123"></div>
+    <div class="fg"><label>Trạng thái *</label>
+      <select id="fTrangThai">
+        <option value="">-- Chọn trạng thái --</option>
+        <option value="1">🔴 Đèn LED đang hư</option>
+        <option value="7">🟠 Đèn HPS đang hư</option>
+        <option value="5">🟣 Đèn hư quá 10 ngày</option>
+        <option value="2" selected>🩷 Đang bị Sự cố</option>
+        <option value="3">🟢 Đèn LED sáng bình thường</option>
+        <option value="4">🔵 Đèn HPS sáng bình thường</option>
+        <option value="6">✅ Sự cố được khắc phục</option>
+      </select>
+    </div>
+    <div class="fg"><label>Người báo sự cố</label><input id="fNguoiPhatHien" type="text" placeholder="Tên người báo"></div>
+    <div class="fg"><label>Số điện thoại người báo</label><input id="fDienThoai" type="tel" inputmode="tel" placeholder="VD: 0989725507"></div>
+    <div class="fg"><label>Ghi chú</label><textarea id="fGhiChu" placeholder="Mô tả thêm về sự cố..."></textarea></div>
+    <div class="fg">
+      <label>Ảnh hiện trường (tối đa 3)</label>
+      <button type="button" class="cam-btn" onclick="triggerImage()">📷 Chụp / chọn ảnh</button>
+      <input id="fImageInput" type="file" accept="image/*" capture="environment" multiple style="display:none" onchange="handleImage(event)">
+      <div class="img-preview" id="fImagePreview"></div>
+    </div>
+    <div class="form-row">
+      <div class="fg"><label>Latitude</label><input id="fLat" type="text" placeholder="10.xxxxxx"></div>
+      <div class="fg"><label>Longitude</label><input id="fLon" type="text" placeholder="106.xxxxxx"></div>
+    </div>
+    <button type="button" class="loc-btn" id="gpsBtn" onclick="getGPS()">📍 Lấy vị trí GPS hiện tại</button>
+    <div id="fCoordsText" class="coords-info" style="margin-bottom:0">Tọa độ: —</div>
+    <div class="form-row" style="margin-top:8px">
+      <div class="fg" style="margin-bottom:0"><label>Đường</label><input id="fDuong" type="text" placeholder="Tên đường"></div>
+      <div class="fg" style="margin-bottom:0"><label>Phường</label><input id="fPhuong" type="text" placeholder="Tên phường"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="submit-wrap">
+  <button type="button" class="submit-btn" id="submitBtn" onclick="submitReport()">📤 Gửi thông tin</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0YAMrbBpNdTL0cmE_1LdQ7SJzeUW0J0VHhWpv3WqW9LvLyBTP8YV2nPzuuR27pJTZ8g/exec';
+const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?output=csv';
+const MAX_IMG_LEN = 32767;
+
+let markerImages = []; // [{dataUrl, path}]
+let toastTimer;
+let nextId = ''; // ID tự sinh, không hiển thị trên UI
+
+// ── TOAST ──
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded', async () => {
+  document.getElementById('fNgayPhatHien').value = new Date().toISOString().split('T')[0];
+  fetchNextId();
+  getGPS(); // tự lấy vị trí ngay khi mở trang
+});
+
+// ── FETCH MAX ID ──
+async function fetchNextId() {
+  try {
+    const res = await fetch(GOOGLE_SHEET_CSV_URL + '&t=' + Date.now());
+    const txt = await res.text();
+    const lines = txt.split('\n').slice(1);
+    let maxId = 0;
+    lines.forEach(l => {
+      const cols = l.split(',');
+      const id = parseInt(cols[0]);
+      if (Number.isFinite(id) && id > maxId) maxId = id;
+    });
+    nextId = String(maxId + 1);
+  } catch(e) {
+    nextId = Date.now().toString().slice(-6);
+  }
+}
+
+// ── GPS ──
+function getGPS() {
+  if (!navigator.geolocation) { showToast('Trình duyệt không hỗ trợ GPS'); return; }
+  const btn = document.getElementById('gpsBtn');
+  btn.textContent = '⏳ Đang lấy GPS...'; btn.disabled = true;
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude, lon = pos.coords.longitude;
+      document.getElementById('fLat').value = lat.toFixed(6);
+      document.getElementById('fLon').value = lon.toFixed(6);
+      document.getElementById('fCoordsText').textContent = `Tọa độ: ${lat.toFixed(6)}, ${lon.toFixed(6)} ±${Math.round(pos.coords.accuracy)}m`;
+      btn.textContent = `📍 GPS: ±${Math.round(pos.coords.accuracy)}m`; btn.disabled = false;
+      reverseGeocode(lat, lon);
+    },
+    err => {
+      showToast('Lỗi GPS: ' + err.message);
+      btn.textContent = '📍 Lấy vị trí GPS hiện tại'; btn.disabled = false;
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+  );
+}
+
+async function reverseGeocode(lat, lon) {
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=vi`);
+    const d = await r.json();
+    const a = d.address || {};
+    const duong = a.road || a.pedestrian || a.footway || a.path || '';
+    const phuong = a.suburb || a.quarter || a.neighbourhood || a.village || a.county || '';
+    if (duong) document.getElementById('fDuong').value = duong;
+    if (phuong) document.getElementById('fPhuong').value = phuong;
+    if (duong || phuong) showToast('📍 Đã điền tên đường/phường');
+  } catch(e) {}
+}
+
+// ── IMAGE ──
+function triggerImage() {
+  if (markerImages.length >= 3) { showToast('Tối đa 3 ảnh'); return; }
+  const f = document.getElementById('fImageInput'); f.value = null; f.click();
+}
+
+function resizeImage(dataUrl, cb) {
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    let w = img.width, h = img.height;
+    const sc = Math.min(1, 800 / Math.max(w, h));
+    w = Math.round(w*sc); h = Math.round(h*sc);
+    let q = 0.88;
+    const render = () => { canvas.width=w; canvas.height=h; ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h); ctx.drawImage(img,0,0,w,h); return canvas.toDataURL('image/jpeg',q); };
+    let r = render();
+    while (r.length > MAX_IMG_LEN && q > 0.1) { q -= .08; r = render(); }
+    while (r.length > MAX_IMG_LEN && Math.max(w,h) > 100) { w=Math.round(w*.85); h=Math.round(h*.85); r=render(); }
+    cb(r.length <= MAX_IMG_LEN ? r : '', r.length > MAX_IMG_LEN ? 'Ảnh quá lớn' : '');
+  };
+  img.onerror = () => cb('', 'Không đọc được ảnh');
+  img.src = dataUrl;
+}
+
+function handleImage(e) {
+  const files = e.target.files;
+  if (!files || !files.length) return;
+  const remaining = 3 - markerImages.length;
+  if (remaining <= 0) { showToast('Tối đa 3 ảnh'); return; }
+  const toProcess = Array.from(files).slice(0, remaining);
+  let done = 0;
+  toProcess.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = ev => resizeImage(ev.target.result, (res, err) => {
+      if (res) markerImages.push({ dataUrl: res, path: '' });
+      else showToast('❌ ' + (err || 'Lỗi ảnh'));
+      done++;
+      if (done === toProcess.length) { renderImagePreview(); showToast(`✅ ${markerImages.length} ảnh sẵn sàng`); }
+    });
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderImagePreview() {
+  const c = document.getElementById('fImagePreview');
+  c.innerHTML = markerImages.map((img, i) =>
+    `<div class="img-thumb"><img src="${img.dataUrl || img.path}"><button class="img-del" onclick="removeImage(${i})">✕</button></div>`
+  ).join('');
+}
+
+function removeImage(i) { markerImages.splice(i, 1); renderImagePreview(); }
+
+function getBase64FromDataUrl(d) { return d.replace(/^data:image\/[^;]+;base64,/, ''); }
+function getImageExtFromDataUrl(d) {
+  const m = d.match(/^data:image\/(\w+)/);
+  if (!m) return 'jpg';
+  const t = m[1].toLowerCase();
+  return t === 'png' ? 'jpg' : (t === 'webp' ? 'webp' : 'jpg');
+}
+
+async function uploadImageViaGas(dataUrl, soTru) {
+  const res = await fetch(GOOGLE_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({
+      action: 'upload_image',
+      imageBase64: getBase64FromDataUrl(dataUrl),
+      ext: getImageExtFromDataUrl(dataUrl),
+      soTru: soTru || 'img'
+    })
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const data = JSON.parse(await res.text());
+  if (data.status !== 'ok') throw new Error(data.message || 'Upload thất bại');
+  return data.path;
+}
+
+// ── PHONE ──
+function normalizePhone(phone) {
+  if (!phone) return '';
+  let p = String(phone).replace(/[\s\-().]/g, '');
+  if (p.startsWith('+84')) p = '0' + p.slice(3);
+  else if (p.startsWith('84') && p.length === 11) p = '0' + p.slice(2);
+  return p;
+}
+
+// ── DATE ──
+function fromInputDate(v) {
+  if (!v) return '';
+  const [y, m, d] = v.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+// ── VN2000 ──
+function convertLatLonToVn2000(lat, lon) {
+  const toRad = x => x * Math.PI / 180, a = 6378137, f = 1/298.257222101;
+  const e2 = 2*f - f*f, k0 = 0.9996;
+  const zone = Math.floor((lon+180)/6)+1, lon0 = toRad(zone*6-183);
+  const phi = toRad(lat), lam = toRad(lon);
+  const sinP = Math.sin(phi), cosP = Math.cos(phi), tanP = Math.tan(phi);
+  const N = a/Math.sqrt(1-e2*sinP*sinP), T = tanP*tanP, C = e2/(1-e2)*cosP*cosP;
+  const A = (lam-lon0)*cosP;
+  const M = a*((1-e2/4-3*e2**2/64-5*e2**3/256)*phi-(3*e2/8+3*e2**2/32+45*e2**3/1024)*Math.sin(2*phi)+(15*e2**2/256+45*e2**3/1024)*Math.sin(4*phi)-(35*e2**3/3072)*Math.sin(6*phi));
+  const x = k0*N*(A+(1-T+C)*A**3/6+(5-18*T+T*T+72*C-58*e2/(1-e2))*A**5/120);
+  const y = k0*(M+N*tanP*(A**2/2+(5-T+9*C+4*C*C)*A**4/24+(61-58*T+T*T+600*C-330*e2/(1-e2))*A**6/720));
+  return { x: x+500000, y };
+}
+
+// ── SUBMIT ──
+async function submitReport() {
+  const soTru = document.getElementById('fSoTru').value.trim();
+  const trangThai = document.getElementById('fTrangThai').value;
+  if (!soTru) { showToast('Vui lòng nhập số trụ'); document.getElementById('fSoTru').focus(); return; }
+  if (!trangThai) { showToast('Vui lòng chọn trạng thái'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  const orig = btn.textContent;
+
+  // Upload ảnh
+  if (markerImages.some(i => i.dataUrl && i.dataUrl.startsWith('data:image/'))) {
+    btn.disabled = true; btn.textContent = '⏳ Đang upload ảnh...';
+    for (const img of markerImages) {
+      if (img.dataUrl && img.dataUrl.startsWith('data:image/')) {
+        try { img.path = await uploadImageViaGas(img.dataUrl, soTru) || ''; img.dataUrl = ''; }
+        catch(e) { showToast('⚠️ Không upload được ảnh: ' + e.message); }
+      }
+    }
+  }
+  const finalImagePath = markerImages.map(i => i.path).filter(Boolean).join(';');
+
+  const lat = parseFloat(document.getElementById('fLat').value);
+  const lon = parseFloat(document.getElementById('fLon').value);
+  const vn = (Number.isFinite(lat) && Number.isFinite(lon)) ? convertLatLonToVn2000(lat, lon) : { x: '', y: '' };
+  const phone = normalizePhone(document.getElementById('fDienThoai').value.trim());
+
+  const payload = {
+    action: 'full_update',
+    id: nextId || String(Date.now()),
+    soTru,
+    lat: Number.isFinite(lat) ? lat : '',
+    lon: Number.isFinite(lon) ? lon : '',
+    trangThai,
+    duong: document.getElementById('fDuong').value.trim(),
+    phuong: document.getElementById('fPhuong').value.trim(),
+    ngayPhatHien: fromInputDate(document.getElementById('fNgayPhatHien').value),
+    nguoiPhatHien: document.getElementById('fNguoiPhatHien').value.trim(),
+    hinhAnh: finalImagePath,
+    ghiChu: document.getElementById('fGhiChu').value.trim(),
+    vn2000x: vn.x ? Math.round(vn.x) : '',
+    vn2000y: vn.y ? Math.round(vn.y) : '',
+    dienThoai: phone,
+  };
+
+  btn.disabled = true; btn.textContent = '⌛ Đang gửi...';
+  try {
+    await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    document.getElementById('successMsg').textContent = `Phiếu #${payload.id} (${soTru}) đã lưu vào hệ thống.`;
+    document.getElementById('successCard').classList.add('show');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    showToast('✅ Đã gửi báo cáo');
+  } catch(e) {
+    showToast('❌ Lỗi: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+function resetForNew() {
+  ['fSoTru','fDuong','fPhuong','fNguoiPhatHien','fGhiChu','fDienThoai','fLat','fLon'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fTrangThai').value = '2';
+  document.getElementById('fNgayPhatHien').value = new Date().toISOString().split('T')[0];
+  document.getElementById('fCoordsText').textContent = 'Tọa độ: —';
+  document.getElementById('gpsBtn').textContent = '📍 Lấy vị trí GPS hiện tại';
+  markerImages = [];
+  renderImagePreview();
+  document.getElementById('successCard').classList.remove('show');
+  fetchNextId();
+  getGPS();
+  document.getElementById('fSoTru').focus();
+}
+</script>
+
+</body>
+</html>

@@ -167,7 +167,7 @@
 <nav class="topbar">
   <a href="dentat.html" class="topbar-back">← Mở app</a>
   <span class="topbar-title">💡 Hướng dẫn sử dụng</span>
-  <span class="topbar-ver">v1.3</span>
+  <span class="topbar-ver">v1.6</span>
 </nav>
 
 <!-- HERO -->
@@ -191,6 +191,7 @@
       <li><a href="#s-edit"><span class="ti">✏️</span>Sửa thông tin đèn</a></li>
       <li><a href="#s-fix"><span class="ti">✅</span>Đánh dấu đã sửa xong</a></li>
       <li><a href="#s-filter"><span class="ti">🔽</span>Lọc & tìm kiếm</a></li>
+      <li><a href="#s-zalo"><span class="ti">📥</span>Nhập nhanh từ tin nhắn Zalo</a></li>
       <li><a href="#s-report"><span class="ti">📊</span>Xuất báo cáo</a></li>
       <li><a href="#s-export"><span class="ti">💾</span>Xuất file Excel & CAD</a></li>
       <li><a href="#s-faq"><span class="ti">❓</span>Câu hỏi thường gặp</a></li>
@@ -395,7 +396,7 @@
         <span class="tip-icon">💡</span>
         <div class="tip-body">
           <div class="tip-title">Vòng nhấp nháy (pulse)</div>
-          <div class="tip-desc">Các đèn <strong>đang hư</strong> (mã 1, 5, 7) có vòng nhấp nháy xung quanh dot để dễ phát hiện từ xa trên bản đồ.</div>
+          <div class="tip-desc">Các đèn <strong>đang hư / đang có sự cố</strong> (mã 1, 2, 5, 7) có vòng nhấp nháy xung quanh dot để dễ phát hiện từ xa trên bản đồ.</div>
         </div>
       </div>
       <div class="tip ok" style="margin-top:8px">
@@ -440,7 +441,14 @@
           </div>
         </div>
         <div class="step">
-          <div class="step-num">4</div>
+          <div class="step-num">4a</div>
+          <div class="step-body">
+            <div class="step-title">Số điện thoại người báo (tùy chọn)</div>
+            <div class="step-desc">Điền SĐT vào trường <strong>Số điện thoại người báo</strong>. Khi xem popup chi tiết sẽ có 2 nút bấm: <strong>📞 Gọi</strong> (gọi điện thoại thường) và <strong>🩷 Nhắn Zalo</strong> (mở chat Zalo với số đó). SĐT tự chuẩn hóa: bỏ khoảng trắng, đổi <code>+84</code> → <code>0</code>.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4b</div>
           <div class="step-body">
             <div class="step-title">Chụp ảnh hiện trường (tùy chọn, tối đa 3 ảnh)</div>
             <div class="step-desc">Nhấn <strong>📷 Chụp / chọn ảnh</strong> để mở camera hoặc chọn ảnh từ thư viện. Có thể chọn nhiều ảnh cùng lúc, tối đa <strong>3 ảnh</strong> mỗi hồ sơ. Mỗi ảnh hiển thị dạng thumbnail — nhấn <strong>✕</strong> trên thumbnail để xóa bớt ảnh trước khi lưu. Ảnh được tự động thu nhỏ và lưu kèm hồ sơ đèn, tên file cách nhau bằng dấu <strong>;</strong>.</div>
@@ -583,6 +591,83 @@
           <tr><td><strong>Xóa bộ lọc</strong></td><td>Hiện nút "Xóa tất cả bộ lọc" khi đang lọc</td></tr>
         </tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- ZALO IMPORT -->
+  <div class="section" id="s-zalo">
+    <div class="section-header">
+      <span class="section-icon">📥</span>
+      <span class="section-title">Nhập nhanh từ tin nhắn Zalo</span>
+    </div>
+    <div class="section-body">
+      <p>Khi nhận báo cáo qua nhóm Zalo (tin nhắn + ảnh + vị trí Google Maps), dùng tính năng này để tạo phiếu sự cố trong vài giây mà không cần điền thủ công.</p>
+      <div class="steps" style="margin-top:14px">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Mở "Nhập từ Zalo"</div>
+            <div class="step-desc">Menu ☰ → <strong>📥 Nhập từ Zalo</strong>.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Paste tin nhắn</div>
+            <div class="step-desc">Copy nội dung tin từ Zalo (VD: <em>"Tuyến 73 trụ 5 mất điện"</em>) dán vào ô <strong>Nội dung tin nhắn</strong>. Hệ thống tự tách <strong>số trụ</strong> và <strong>tuyến</strong>.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Dán link vị trí (nếu có)</div>
+            <div class="step-desc">Copy link "Vị trí của..." trong Zalo (hoặc link Google Maps), dán vào ô <strong>Link Google Maps</strong>. Có thể dán trực tiếp tọa độ dạng <code>10.5, 106.5</code>.<br>
+              <strong style="color:#dc2626">⚠ Lưu ý:</strong> link rút gọn <code>maps.app.goo.gl/...</code> phải mở trong trình duyệt trước rồi copy URL đầy đủ (chứa <code>@lat,lon</code>) thì mới đọc được tọa độ.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Upload ảnh (tối đa 3)</div>
+            <div class="step-desc">Lưu ảnh từ Zalo về máy, sau đó nhấn <strong>📷 Chụp / chọn ảnh</strong> trong modal — chọn cùng lúc nhiều ảnh.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <div class="step-title">Xem khung "phân tích"</div>
+            <div class="step-desc">Khung bên dưới hiển thị: <em>Số trụ</em>, <em>Tuyến</em>, <em>Tọa độ</em>, <em>Trạng thái</em>, <em>Số ảnh</em>. Nếu thấy ⚠ đỏ — cần sửa lại input trước khi tiếp tục.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">6</div>
+          <div class="step-body">
+            <div class="step-title">Nhấn "✓ Tạo phiếu"</div>
+            <div class="step-desc">Form thêm đèn mới mở ra với mọi trường đã được điền sẵn:<br>
+              • Trạng thái = <strong>Đang bị Sự cố (mã 2)</strong><br>
+              • Số trụ, tuyến (nếu phát hiện được)<br>
+              • Tọa độ + tự động lấy đường/phường từ GPS<br>
+              • Ghi chú = toàn bộ tin nhắn gốc<br>
+              • Ảnh đã upload<br>
+              Kiểm tra lại rồi nhấn <strong>💾 Lưu dữ liệu</strong> để hoàn tất.</div>
+          </div>
+        </div>
+      </div>
+      <hr class="soft">
+      <div class="tip info">
+        <span class="tip-icon">💡</span>
+        <div class="tip-body">
+          <div class="tip-title">Mẹo lấy link tọa độ chuẩn từ Zalo</div>
+          <div class="tip-desc">Khi ai đó gửi <em>"Vị trí của X"</em> trong Zalo, nhấn vào để mở trong Google Maps → nhấn <strong>Chia sẻ → Sao chép liên kết</strong> → dán vào ô link. Link đầy đủ sẽ chứa <code>@10.xxx,106.xxx</code> giúp parser bóc được tọa độ chính xác.</div>
+        </div>
+      </div>
+      <div class="tip warn" style="margin-top:8px">
+        <span class="tip-icon">⚠️</span>
+        <div class="tip-body">
+          <div class="tip-title">Hạn chế</div>
+          <div class="tip-desc">Đây là <strong>nhập bán tự động</strong>. Zalo không cho phép app đọc tin nhắn nhóm trực tiếp — cần một người ngồi copy/paste. Tốc độ khoảng 10–15 giây/phiếu (so với 1–2 phút điền tay).</div>
+        </div>
+      </div>
     </div>
   </div>
 
