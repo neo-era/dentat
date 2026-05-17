@@ -721,6 +721,9 @@
       <div><label>Phường / Xã</label><select id="rptPhuong"><option value="">Tất cả phường</option></select></div>
       <div><label>Người phát hiện</label><select id="rptNguoiPH"><option value="">Tất cả</option></select></div>
     </div>
+    <div class="rpt-row" style="grid-template-columns:1fr">
+      <div><label>Loại sự cố / Trạng thái</label><select id="rptTrangThai"><option value="">Tất cả trạng thái</option></select></div>
+    </div>
     <div class="rpt-preview" id="rptPreview">
       <div style="font-size:12px;color:var(--text-muted);text-align:center">Chọn ngày để xem tóm tắt</div>
     </div>
@@ -1231,17 +1234,25 @@ function createStatusIcon(trangThai) {
 
 // ── MAP INIT ──
 function initializeMap() {
+  const gmap = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { maxZoom: 22, subdomains: ['mt0','mt1','mt2','mt3'], attribution: '© Google' });
   const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 22, attribution: '© OSM' });
   const sat = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 22, subdomains: ['mt0','mt1','mt2','mt3'], attribution: '© Google' });
-  map = L.map('map', { center: [10.762622, 106.660172], zoom: 13, maxZoom: 22, layers: [osm] });
+  map = L.map('map', { center: [10.762622, 106.660172], zoom: 13, maxZoom: 22, layers: [gmap] });
   markersCluster = L.markerClusterGroup({ maxClusterRadius: 50, showCoverageOnHover: false });
   labelLayerGroup = L.layerGroup();
-  L.control.layers({'OpenStreetMap': osm, 'Vệ tinh': sat}, {}, { position: 'topright' }).addTo(map);
+  L.control.layers({'Google Map': gmap, 'OpenStreetMap': osm, 'Vệ tinh': sat}, {}, { position: 'topright' }).addTo(map);
   map.addLayer(markersCluster);
-  map.addLayer(labelLayerGroup);
+  if (map.getZoom() > 14) map.addLayer(labelLayerGroup);
   map.on('click', e => {
     document.getElementById('searchDrop').style.display = 'none';
     if (pendingNewMarker) showFormAt(e.latlng.lat, e.latlng.lng);
+  });
+  map.on('zoomend', () => {
+    if (map.getZoom() > 14) {
+      if (!map.hasLayer(labelLayerGroup)) map.addLayer(labelLayerGroup);
+    } else {
+      if (map.hasLayer(labelLayerGroup)) map.removeLayer(labelLayerGroup);
+    }
   });
 }
 
@@ -1260,7 +1271,7 @@ function addMarkerRow(row, idx) {
   markersCluster.addLayer(marker);
   if (p.soTru) {
     entry.labelMarker = L.marker([p.lat, p.lon], {
-      icon: L.divIcon({ className: 'custom-label', html: `<div>${p.soTru}</div>`, iconSize: [80, 16], iconAnchor: [40, 22] })
+      icon: L.divIcon({ className: 'custom-label', html: `<div>${p.soTru}</div>`, iconSize: [80, 16], iconAnchor: [40, 32] })
     }).addTo(labelLayerGroup);
   }
   markers[idx] = entry;
@@ -1949,6 +1960,12 @@ function populateReportFilters() {
   };
   sel('rptPhuong', phuongs, 'Tất cả phường');
   sel('rptNguoiPH', nguois,  'Tất cả');
+  const ttEl = document.getElementById('rptTrangThai');
+  if (ttEl) {
+    const cur = ttEl.value;
+    ttEl.innerHTML = '<option value="">Tất cả trạng thái</option>' +
+      Object.entries(STATUS_CONFIG).map(([s,cfg]) => `<option value="${s}"${s===cur?' selected':''}>${cfg.emoji} ${cfg.label}</option>`).join('');
+  }
 }
 
 function openReportModal() {
@@ -1971,6 +1988,7 @@ function getReportRows() {
   toD.setHours(23,59,59,999);
   const fPhuong = (document.getElementById('rptPhuong')?.value  || '').trim();
   const fNguoi  = (document.getElementById('rptNguoiPH')?.value || '').trim().toLowerCase();
+  const fTrangThai = (document.getElementById('rptTrangThai')?.value || '').trim();
   return loadedData.filter(row => {
     const p = parseRow(row);
     if (!p.ngayPhatHien) return false;
@@ -1978,6 +1996,7 @@ function getReportRows() {
     if (!d || d < fromD || d > toD) return false;
     if (fPhuong && (p.phuong||'').trim() !== fPhuong) return false;
     if (fNguoi  && (p.nguoiPhatHien||'').trim().toLowerCase() !== fNguoi) return false;
+    if (fTrangThai && String(p.trangThai||'').trim() !== fTrangThai) return false;
     return true;
   });
 }
@@ -1992,7 +2011,7 @@ function updateReportPreview() {
     ).join('') + (rows.length === 0 ? '<div style="font-size:12px;color:var(--text-muted);text-align:center">Không có dữ liệu trong khoảng này</div>' : '');
 }
 document.addEventListener('DOMContentLoaded', () => {
-  ['rptFrom','rptTo','rptPhuong','rptNguoiPH'].forEach(id => {
+  ['rptFrom','rptTo','rptPhuong','rptNguoiPH','rptTrangThai'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('change', updateReportPreview);
   });
@@ -2008,7 +2027,9 @@ function exportReport() {
     const toFile   = toVal.replace(/\//g, '-');
     const fPhuong  = (document.getElementById('rptPhuong')?.value  || '').trim();
     const fNguoi   = (document.getElementById('rptNguoiPH')?.value || '').trim();
-    const filterTxt = [fPhuong && ('Phường: ' + fPhuong), fNguoi && ('Người PH: ' + fNguoi)].filter(Boolean).join(' | ');
+    const fTrangThai = (document.getElementById('rptTrangThai')?.value || '').trim();
+    const ttLabel = fTrangThai && STATUS_CONFIG[fTrangThai] ? STATUS_CONFIG[fTrangThai].label : '';
+    const filterTxt = [fPhuong && ('Phường: ' + fPhuong), fNguoi && ('Người PH: ' + fNguoi), ttLabel && ('Trạng thái: ' + ttLabel)].filter(Boolean).join(' | ');
 
     // đếm theo trạng thái
     const counts = {};

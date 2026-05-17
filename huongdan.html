@@ -326,7 +326,7 @@
         <div class="ui-card">
           <div class="ui-icon">🗺</div>
           <div class="ui-name">Bản đồ</div>
-          <div class="ui-desc">Vùng bản đồ tương tác. Chuyển lớp OSM / Vệ tinh ở góc trên phải. Nhấn vào dot đèn để xem chi tiết.</div>
+          <div class="ui-desc">Vùng bản đồ tương tác. Chuyển lớp Google Map / OSM / Vệ tinh ở góc trên phải. Nhấn vào dot đèn để xem chi tiết.</div>
         </div>
         <div class="ui-card">
           <div class="ui-icon">⬇️</div>
@@ -340,9 +340,10 @@
         <thead><tr><th>Nút</th><th>Chức năng</th></tr></thead>
         <tbody>
           <tr><td>+&nbsp;/&nbsp;−</td><td>Phóng to / thu nhỏ bản đồ</td></tr>
-          <tr><td>OSM / Vệ tinh</td><td>Chuyển đổi lớp nền bản đồ</td></tr>
+          <tr><td>Google Map / OSM / Vệ tinh</td><td>Chuyển đổi lớp nền bản đồ (mặc định: Google Map)</td></tr>
         </tbody>
       </table>
+      <p style="font-size:12px;color:var(--muted);margin-top:8px">💡 <strong>Nhãn số trụ</strong> chỉ hiển thị khi zoom &gt; 14 (zoom gần) để tránh rối bản đồ khi xem toàn cảnh.</p>
     </div>
   </div>
 
@@ -695,6 +696,13 @@
         </div>
         <div class="step">
           <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Lọc thêm (tùy chọn)</div>
+            <div class="step-desc">Có thể thu hẹp kết quả theo <strong>Phường/Xã</strong>, <strong>Người phát hiện</strong>, và <strong>Loại sự cố / Trạng thái</strong> (LED hư, HPS hư, sự cố, đã khắc phục…). Bộ lọc được ghi trực tiếp lên tiêu đề báo cáo Excel.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
           <div class="step-body">
             <div class="step-title">Xuất ra Excel</div>
             <div class="step-desc">Nhấn <strong>📥 Xuất Excel</strong>. File tải về gồm: STT, số trụ, loại đèn, trạng thái, địa chỉ, ngày phát hiện, ngày sửa, <em>số ngày chưa sửa</em>, vật tư, ghi chú.</div>
