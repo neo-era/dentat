@@ -175,6 +175,14 @@
     .banner-info { background: #dbeafe; color: #1e40af; border-left: 3px solid var(--sky); }
     .banner b { font-weight: 800; }
 
+    /* ── LAN INFO ── */
+    .lan-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+    .lan-cell { background: var(--bg); border-radius: 9px; padding: 10px 12px; }
+    .lan-key { font-size: 10px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+    .lan-val { width: 100%; border: none; background: transparent; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: var(--navy); padding: 0; outline: none; }
+    .lan-val.ok  { color: var(--green); }
+    .lan-val.err { color: var(--red); }
+
     /* ── EMPTY ── */
     .empty { text-align: center; padding: 24px; color: var(--muted); font-size: 13px; }
 
@@ -214,6 +222,15 @@
 
   <!-- ── TAB: TRẠNG THÁI ── -->
   <section id="tab-status" class="tab-panel">
+    <div class="card">
+      <h3>🔌 Kết nối LAN <button class="btn btn-outline" style="margin-left:auto;font-size:11px;padding:4px 10px;min-height:auto" onclick="pingLan()">Ping lại</button></h3>
+      <div class="lan-grid">
+        <div class="lan-cell"><div class="lan-key">URL gốc</div><input id="lanUrl" class="lan-val mono" readonly></div>
+        <div class="lan-cell"><div class="lan-key">Host : Port</div><input id="lanHost" class="lan-val mono" readonly></div>
+        <div class="lan-cell"><div class="lan-key">Ping</div><input id="lanPing" class="lan-val mono" readonly></div>
+        <div class="lan-cell"><div class="lan-key">Cập nhật cuối</div><input id="lanLast" class="lan-val mono" readonly></div>
+      </div>
+    </div>
     <div class="card">
       <h3>📥 Ngõ vào (I)</h3>
       <div class="io-grid" id="inputGrid"></div>
@@ -773,9 +790,60 @@ async function toggleOutput(addr, on) {
 // RENDER: I/Q/M STATUS GRID
 // ═══════════════════════════════════════════════════════════════════════
 function renderStatus() {
+  renderLanInfo();
   renderIoGroup('inputGrid',  config.inputs,  'I');
   renderIoGroup('qGrid',      config.outputs, 'Q');
   renderIoGroup('mGrid',      config.memory,  'M');
+}
+
+// ── LAN INFO ── hiển thị URL/host/port + ping ở đầu tab Trạng thái
+let lastPingMs = null;
+let lastPingOk = null;
+let lastPollAt = null;
+
+function parseHostPort(url) {
+  try {
+    const u = new URL(url);
+    const port = u.port || (u.protocol === 'https:' ? '443' : '80');
+    return `${u.hostname} : ${port}`;
+  } catch { return '—'; }
+}
+
+function renderLanInfo() {
+  const urlEl  = document.getElementById('lanUrl');
+  const hostEl = document.getElementById('lanHost');
+  const pingEl = document.getElementById('lanPing');
+  const lastEl = document.getElementById('lanLast');
+  if (!urlEl) return;
+  urlEl.value  = config.demo ? 'DEMO MODE (không kết nối thật)' : (config.baseUrl || '—');
+  hostEl.value = config.demo ? '—' : parseHostPort(config.baseUrl);
+  if (config.demo) {
+    pingEl.value = 'DEMO';
+    pingEl.className = 'lan-val mono';
+  } else if (lastPingMs == null) {
+    pingEl.value = 'chưa đo';
+    pingEl.className = 'lan-val mono';
+  } else {
+    pingEl.value = lastPingOk ? `${lastPingMs} ms` : `lỗi ${lastPingMs}ms`;
+    pingEl.className = 'lan-val mono ' + (lastPingOk ? 'ok' : 'err');
+  }
+  lastEl.value = lastPollAt ? new Date(lastPollAt).toLocaleTimeString('vi-VN') : '—';
+}
+
+async function pingLan() {
+  if (config.demo) { showToast('🟡 Đang chạy demo — không ping được'); return; }
+  if (!config.baseUrl) { showToast('⚠️ Chưa cấu hình URL'); return; }
+  const t0 = performance.now();
+  try {
+    const probe = config.outputs[0]?.addr || config.inputs[0]?.addr || 'Q1';
+    await plcAdapter.readBit(probe);
+    lastPingMs = Math.round(performance.now() - t0);
+    lastPingOk = true;
+  } catch (e) {
+    lastPingMs = Math.round(performance.now() - t0);
+    lastPingOk = false;
+  }
+  renderLanInfo();
 }
 
 function renderIoGroup(elId, list, area) {
@@ -889,17 +957,31 @@ async function pollOnce() {
   const a = adapter();
   const sample = { ts: Date.now(), vals: {} };
   const tasks = [];
+  const t0 = performance.now();
+  let okCount = 0, totalCount = 0;
 
-  config.inputs.forEach(it  => tasks.push(a.readBit(it.addr).then(v => { lastState.I[it.addr] = v; }).catch(()=>{})));
-  config.outputs.forEach(it => tasks.push(a.readBit(it.addr).then(v => { lastState.Q[it.addr] = v; }).catch(()=>{})));
-  config.memory.forEach(it  => tasks.push(a.readBit(it.addr).then(v => { lastState.M[it.addr] = v; }).catch(()=>{})));
+  const probe = (taskPromise) => {
+    totalCount++;
+    return taskPromise.then(v => { okCount++; return v; });
+  };
+
+  config.inputs.forEach(it  => tasks.push(probe(a.readBit(it.addr)).then(v => { lastState.I[it.addr] = v; }).catch(()=>{})));
+  config.outputs.forEach(it => tasks.push(probe(a.readBit(it.addr)).then(v => { lastState.Q[it.addr] = v; }).catch(()=>{})));
+  config.memory.forEach(it  => tasks.push(probe(a.readBit(it.addr)).then(v => { lastState.M[it.addr] = v; }).catch(()=>{})));
   config.variables.forEach(it => tasks.push(
-    (it.type === 'bit' ? a.readBit(it.addr) : a.readNum(it.addr))
+    probe(it.type === 'bit' ? a.readBit(it.addr) : a.readNum(it.addr))
       .then(v => { lastState.V[it.addr] = v; sample.vals[it.addr] = (typeof v === 'boolean' ? (v?1:0) : v); })
       .catch(()=>{})
   ));
 
   await Promise.allSettled(tasks);
+
+  // ping = thời gian trung bình mỗi request trong vòng poll
+  if (!config.demo && totalCount > 0) {
+    lastPingMs = Math.round((performance.now() - t0) / totalCount);
+    lastPingOk = okCount > 0;
+  }
+  lastPollAt = Date.now();
 
   chartData.push(sample);
   if (chartData.length > 300) chartData.shift();
