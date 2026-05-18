@@ -341,6 +341,188 @@
         ℹ️ <div>API webserver của LOGO! 8 không có tài liệu chính thức công khai. Adapter hiện tại dùng <b>POST /AJAX</b> với body dạng plain text. Nếu firmware của bạn dùng định dạng khác, sửa hàm <code>plcAdapter.request()</code> trong mã nguồn (gần đầu thẻ <code>&lt;script&gt;</code>).</div>
       </div>
     </div>
+
+    <!-- ── TRIỂN KHAI QUA INTERNET ── -->
+    <div class="card">
+      <h3>🌐 Triển khai qua internet — 4 phương án</h3>
+      <div class="card-sub">File <code>plc.html</code> mặc định chỉ chạy được trên cùng LAN với PLC. Để truy cập từ xa, chọn 1 trong 4 cách:</div>
+      <table style="width:100%;font-size:12px;border-collapse:collapse">
+        <thead><tr style="background:var(--bg)">
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">Cách</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">Bảo mật</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">Chi phí</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">Phù hợp</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style="padding:8px"><b>Tailscale</b> (VPN)</td><td style="padding:8px">⭐⭐⭐⭐⭐</td><td style="padding:8px">Free &lt;100 device</td><td style="padding:8px">1 vài người, có máy edge tại trạm</td></tr>
+          <tr><td style="padding:8px"><b>Cloudflare Tunnel</b></td><td style="padding:8px">⭐⭐⭐⭐⭐</td><td style="padding:8px">Free</td><td style="padding:8px">Cần URL HTTPS public + login Google</td></tr>
+          <tr><td style="padding:8px"><b>Backend trung tâm</b> (Node.js + MQTT)</td><td style="padding:8px">⭐⭐⭐⭐</td><td style="padding:8px">VPS ~$5/th</td><td style="padding:8px"><b>Nhiều trạm (>10)</b>, cần log + phân quyền</td></tr>
+          <tr><td style="padding:8px">Port forwarding thẳng</td><td style="padding:8px">❌</td><td style="padding:8px">Free</td><td style="padding:8px"><b>KHÔNG dùng</b> — chỉ test LAN tạm</td></tr>
+        </tbody>
+      </table>
+      <div class="banner banner-warn" style="margin-top:10px">
+        ⚠️ <div>LOGO! webserver chỉ có HTTP Basic Auth, không HTTPS, không rate limit. <b>Tuyệt đối không port-forward port 80 PLC ra internet</b> — hacker quét được sẽ điều khiển toàn tuyến đèn.</div>
+      </div>
+    </div>
+
+    <!-- ── KIẾN TRÚC ĐA TRẠM ── -->
+    <div class="card">
+      <h3>🏗 Kiến trúc đa trạm (>50 trạm phân tán)</h3>
+      <div class="card-sub">Khi triển khai cho quận/huyện, dùng pattern IoT gateway:</div>
+      <pre style="background:var(--bg);padding:12px;border-radius:9px;font-size:11px;overflow-x:auto;line-height:1.5;color:var(--text)">
+[LOGO! 230RCE] ──Modbus TCP──→ [Gateway tại trạm] ──MQTT/4G──→ [Server VPS] ──HTTPS──→ [Web UI]
+    LAN nội bộ                  RasPi + 4G dongle                Mosquitto/Aedes        điện thoại/PC
+                                hoặc 4G router công nghiệp        + REST + DB + Auth      người dùng
+      </pre>
+      <p style="font-size:12px;color:var(--muted);margin-top:8px">Đã có skeleton 3 thành phần ở thư mục <code>plc-system/</code> trong dự án này: gateway Node.js, server Docker (Aedes + Express + SQLite + JWT + WebSocket), web UI cloud multi-station.</p>
+    </div>
+
+    <!-- ── LỰA CHỌN ĐƯỜNG TRUYỀN ── -->
+    <div class="card">
+      <h3>📡 Đường truyền 4G / WiFi / LoRa</h3>
+      <table style="width:100%;font-size:12px;border-collapse:collapse">
+        <thead><tr style="background:var(--bg)">
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)"></th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">4G/LTE</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">WiFi</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">LoRa</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style="padding:6px 8px;font-weight:700">Phủ sóng</td><td style="padding:6px 8px">✅ Cả nước</td><td style="padding:6px 8px">❌ &lt;50m</td><td style="padding:6px 8px">✅ 2–10km</td></tr>
+          <tr><td style="padding:6px 8px;font-weight:700">Real-time ON/OFF</td><td style="padding:6px 8px">✅ &lt;1s</td><td style="padding:6px 8px">✅ &lt;100ms</td><td style="padding:6px 8px">⚠ 1–10s</td></tr>
+          <tr><td style="padding:6px 8px;font-weight:700">Chi phí/tháng</td><td style="padding:6px 8px">~30–50k SIM</td><td style="padding:6px 8px">Free</td><td style="padding:6px 8px">Free TTN</td></tr>
+          <tr><td style="padding:6px 8px;font-weight:700">Tốn nguồn</td><td style="padding:6px 8px">Cao</td><td style="padding:6px 8px">TB</td><td style="padding:6px 8px">Rất thấp</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:12px;color:var(--muted);margin-top:8px">→ Đèn đường có điện AC sẵn, cần điều khiển tức thì: <b>4G là lựa chọn tiêu chuẩn ở VN</b>. LoRa quá hẹp băng thông cho ON/OFF, WiFi không phủ ngoài trời.</p>
+    </div>
+
+    <!-- ── HARDWARE ── -->
+    <div class="card">
+      <h3>🔩 Phần cứng gateway tại trạm</h3>
+      <table style="width:100%;font-size:12px;border-collapse:collapse">
+        <thead><tr style="background:var(--bg)">
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">Thiết bị</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">Giá</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">Ưu / Nhược</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style="padding:8px">Raspberry Pi Zero 2W + USB 4G (Huawei E3372)</td><td style="padding:8px">~1–1.5tr</td><td style="padding:8px">Linh hoạt, dễ tùy biến. Cần tủ chống ẩm.</td></tr>
+          <tr><td style="padding:8px">Raspberry Pi 4 + 4G HAT (Waveshare/SIM7600)</td><td style="padding:8px">~2.5–3tr</td><td style="padding:8px">Ổn định hơn Zero, có GPIO cho I/O phụ.</td></tr>
+          <tr><td style="padding:8px">4G router công nghiệp Teltonika RUT240</td><td style="padding:8px">~4–5tr</td><td style="padding:8px">Tủ kim loại IP30, có VPN client, watchdog HW. Khuyến nghị cho dự án thật.</td></tr>
+          <tr><td style="padding:8px">USR-G780/G781 (Modbus-MQTT bridge)</td><td style="padding:8px">~3tr</td><td style="padding:8px">Sẵn firmware Modbus→MQTT. Không cần code gateway nhưng kém linh hoạt.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── LOGO! MODBUS MAPPING ── -->
+    <div class="card">
+      <h3>🧷 Mapping LOGO! ↔ Modbus address</h3>
+      <div class="card-sub">Khi bật <b>Modbus Slave</b> trong Soft Comfort, các vùng nhớ LOGO! map cứng theo chuẩn Siemens:</div>
+      <table style="width:100%;font-size:12px;border-collapse:collapse">
+        <thead><tr style="background:var(--bg)">
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">LOGO!</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">Modbus area</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">Address</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">FC đọc / ghi</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style="padding:6px 8px"><code>I1..I24</code></td><td style="padding:6px 8px">Discrete Input</td><td style="padding:6px 8px">0..23</td><td style="padding:6px 8px">02 / —</td></tr>
+          <tr><td style="padding:6px 8px"><code>Q1..Q20</code></td><td style="padding:6px 8px">Coil</td><td style="padding:6px 8px">8192..8211</td><td style="padding:6px 8px">01 / 05</td></tr>
+          <tr><td style="padding:6px 8px"><code>M1..M64</code></td><td style="padding:6px 8px">Coil</td><td style="padding:6px 8px">8256..8319</td><td style="padding:6px 8px">01 / 05</td></tr>
+          <tr><td style="padding:6px 8px"><code>VW0..VWn</code></td><td style="padding:6px 8px">Holding Register</td><td style="padding:6px 8px">0..n/2</td><td style="padding:6px 8px">03 / 06</td></tr>
+          <tr><td style="padding:6px 8px"><code>AI1..AI8</code></td><td style="padding:6px 8px">Input Register</td><td style="padding:6px 8px">1..8</td><td style="padding:6px 8px">04 / —</td></tr>
+          <tr><td style="padding:6px 8px"><code>AQ1..AQ8</code></td><td style="padding:6px 8px">Holding Register</td><td style="padding:6px 8px">513..520</td><td style="padding:6px 8px">03 / 06</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── DEPLOY VPS ── -->
+    <div class="card">
+      <h3>🚀 Deploy server trung tâm (VPS Docker)</h3>
+      <pre style="background:#0f172a;color:#86efac;padding:14px;border-radius:9px;font-size:12px;overflow-x:auto;line-height:1.5;font-family:'JetBrains Mono',monospace">
+# Trên VPS Ubuntu/Debian (cài Docker + Compose trước)
+cd plc-system
+cp server/.env.example server/.env       # sửa JWT_SECRET, ADMIN_PASS
+docker compose up -d
+
+# Truy cập http://&lt;vps-ip&gt;:8080 → đăng nhập admin
+# → tab Quản trị → tạo trạm → copy gatewayToken (chỉ hiện 1 lần)</pre>
+    </div>
+
+    <!-- ── DEPLOY GATEWAY ── -->
+    <div class="card">
+      <h3>📦 Deploy gateway (RasPi tại trạm)</h3>
+      <pre style="background:#0f172a;color:#86efac;padding:14px;border-radius:9px;font-size:12px;overflow-x:auto;line-height:1.5;font-family:'JetBrains Mono',monospace">
+# RasPi Zero 2W / Pi 4, Node.js 20+, USB 4G dongle stick-mode
+cd plc-system/gateway
+npm install
+cp config.example.json config.json       # paste stationId + gatewayToken
+node gateway.js                           # chạy thử
+
+# Setup auto-start
+sudo cp systemd/plc-gateway.service /etc/systemd/system/
+sudo systemctl enable --now plc-gateway
+journalctl -u plc-gateway -f              # xem log realtime</pre>
+    </div>
+
+    <!-- ── PRODUCTION CHECKLIST ── -->
+    <div class="card">
+      <h3>✅ Production checklist</h3>
+      <ol style="padding-left:20px;line-height:1.7;font-size:13px">
+        <li>Đặt <b>Caddy/Nginx reverse proxy</b> trước port 8080 → HTTPS Let's Encrypt + WSS tự động.</li>
+        <li>Bật <code>TLS_CERT_PATH</code>/<code>TLS_KEY_PATH</code> trong <code>.env</code> để gateway dùng <code>mqtts://</code> thay vì <code>mqtt://</code>.</li>
+        <li>Đổi <b>tất cả secret</b> trong <code>.env</code>: <code>JWT_SECRET</code>, <code>ADMIN_PASS</code>.</li>
+        <li>Thêm <b>fail2ban</b> hoặc rate limit middleware cho endpoint <code>/api/login</code>.</li>
+        <li>Cấu hình LOGO! <b>Modbus Slave</b> trong Soft Comfort, đặt IP tĩnh, đảm bảo gateway ping được PLC.</li>
+        <li>Backup định kỳ <code>server/data/plc.db</code> (cron + rsync hoặc restic).</li>
+        <li>Monitor: gửi alert khi trạm offline >5 phút (qua Telegram bot / email).</li>
+        <li>PLC <b>không bao giờ</b> phơi port 80/502 ra internet — chỉ LAN nội bộ tại trạm.</li>
+      </ol>
+    </div>
+
+    <!-- ── FAILURE MODES ── -->
+    <div class="card">
+      <h3>🛠 Xử lý sự cố thường gặp</h3>
+      <table style="width:100%;font-size:12px;border-collapse:collapse">
+        <thead><tr style="background:var(--bg)">
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">Sự cố</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">Triệu chứng</th>
+          <th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">Hành vi hệ thống</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style="padding:8px">Mất 4G tại trạm</td><td style="padding:8px">Chấm xanh WS thành đỏ</td><td style="padding:8px">Gateway buffer 200 mẫu RAM → reconnect đẩy lại topic <code>state/history</code></td></tr>
+          <tr><td style="padding:8px">Gateway crash</td><td style="padding:8px">Trạm hiện Offline trên UI</td><td style="padding:8px">LWT phát <code>online=false</code> tự động, systemd restart sau 5s</td></tr>
+          <tr><td style="padding:8px">PLC mất nguồn</td><td style="padding:8px">Gateway báo lỗi Modbus</td><td style="padding:8px">Retry mỗi 5s, log <code>[modbus]</code></td></tr>
+          <tr><td style="padding:8px">Server VPS down</td><td style="padding:8px">Tất cả gateway buffer</td><td style="padding:8px">Reconnect khi server lên lại + đẩy backlog</td></tr>
+          <tr><td style="padding:8px">Token gateway rò rỉ</td><td style="padding:8px">State giả từ kẻ tấn công</td><td style="padding:8px">Admin xóa + tạo lại trạm với token mới, redeploy gateway</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── BẢO MẬT ── -->
+    <div class="card">
+      <h3>🔐 Mô hình bảo mật tổng thể</h3>
+      <ul style="padding-left:20px;line-height:1.7;font-size:13px">
+        <li><b>User</b>: bcrypt + JWT 7 ngày, role <code>admin</code>/<code>operator</code>. Chỉ admin tạo/xóa trạm.</li>
+        <li><b>Gateway</b>: token 24-byte hex sinh ngẫu nhiên, server bcrypt-hash, chỉ trả về <b>1 lần khi tạo trạm</b>.</li>
+        <li><b>MQTT ACL</b>: Aedes chặn cứng — gateway STN-A không bao giờ thấy topic của STN-B.</li>
+        <li><b>PLC</b>: chỉ phơi LAN nội bộ tại trạm. Gateway là điểm cô lập duy nhất giữa PLC ↔ internet.</li>
+        <li><b>Internal secret</b>: server tự sinh random mỗi lần boot cho MQTT client nội bộ.</li>
+      </ul>
+    </div>
+
+    <!-- ── TÍCH HỢP DENTAT ── -->
+    <div class="card">
+      <h3>🗺 Tích hợp với dentat.html (bản đồ đèn)</h3>
+      <p style="font-size:13px;line-height:1.6">Sau khi server trung tâm chạy ổn, có thể tích hợp với app <code>dentat.html</code> hiện có:</p>
+      <ul style="padding-left:20px;line-height:1.7;font-size:13px;margin-top:8px">
+        <li>Marker trên bản đồ đọc trạng thái thật của contactor qua <code>GET /api/stations/:id/state</code>.</li>
+        <li>Màu marker (LED hư / sự cố / bình thường) update realtime theo trạng thái Q của PLC.</li>
+        <li>Popup đèn thêm nút Quick Control (ON/OFF tuyến đèn) gọi <code>POST /api/stations/:id/cmd</code>.</li>
+        <li>Map mỗi đèn → 1 station + addr Q cụ thể qua trường mới trong Sheet (vd cột <code>plcStation</code>, <code>plcOutput</code>).</li>
+      </ul>
+    </div>
   </section>
 
 </main>
