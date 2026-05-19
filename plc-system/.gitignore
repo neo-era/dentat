@@ -1,6 +1,0 @@
-node_modules/
-*.log
-.env
-config.json
-server/data/
-server/certs/
