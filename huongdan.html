@@ -167,7 +167,7 @@
 <nav class="topbar">
   <a href="dentat.html" class="topbar-back">← Mở app</a>
   <span class="topbar-title">💡 Hướng dẫn sử dụng</span>
-  <span class="topbar-ver">v1.6</span>
+  <span class="topbar-ver">v1.7</span>
 </nav>
 
 <!-- HERO -->
@@ -188,7 +188,8 @@
       <li><a href="#s-map"><span class="ti">🗺</span>Giao diện bản đồ</a></li>
       <li><a href="#s-status"><span class="ti">🔴</span>Ý nghĩa màu sắc đèn</a></li>
       <li><a href="#s-add"><span class="ti">➕</span>Thêm đèn hư mới</a></li>
-      <li><a href="#s-edit"><span class="ti">✏️</span>Sửa thông tin đèn</a></li>
+      <li><a href="#s-edit"><span class="ti">✏️</span>Xem chi tiết & sửa thông tin đèn</a></li>
+      <li><a href="#s-delete"><span class="ti">🗑</span>Xóa đèn khỏi hệ thống</a></li>
       <li><a href="#s-fix"><span class="ti">✅</span>Đánh dấu đã sửa xong</a></li>
       <li><a href="#s-filter"><span class="ti">🔽</span>Lọc & tìm kiếm</a></li>
       <li><a href="#s-zalo"><span class="ti">📥</span>Nhập nhanh từ tin nhắn Zalo</a></li>
@@ -475,7 +476,7 @@
         <span class="tip-icon">🤖</span>
         <div class="tip-body">
           <div class="tip-title">Điền tự động</div>
-          <div class="tip-desc">Tên đường và phường được điền tự động từ tọa độ GPS qua Nominatim. <em>Người phát hiện</em> tự điền từ tài khoản đang đăng nhập. <em>ID</em> tự tăng.</div>
+          <div class="tip-desc">Tên đường và phường được điền tự động từ tọa độ GPS qua Nominatim. <em>Người phát hiện</em> tự điền từ tài khoản đang đăng nhập. <em>ID</em> tự tạo từ timestamp (13 chữ số) — đảm bảo không trùng dù nhiều người thêm cùng lúc từ các thiết bị khác nhau.</div>
         </div>
       </div>
     </div>
@@ -493,13 +494,13 @@
           <div class="step-num">1</div>
           <div class="step-body">
             <div class="step-title">Nhấn vào dot đèn trên bản đồ</div>
-            <div class="step-desc">Popup chi tiết hiện ra, gồm: ảnh (tối đa 3 ảnh hiển thị cạnh nhau), số trụ, trạng thái, địa chỉ, ngày phát hiện, người phát hiện, vật tư sửa, tọa độ GPS.</div>
+            <div class="step-desc"><strong>Sheet thông tin</strong> trượt lên từ dưới màn hình (thay vì popup nổi), gồm: ảnh (tối đa 3 ảnh hiển thị cạnh nhau), số trụ, trạng thái, địa chỉ, ngày phát hiện, người phát hiện, vật tư sửa, tọa độ GPS. Nhấn <strong>✕</strong> hoặc nhấn ra ngoài để đóng.</div>
           </div>
         </div>
         <div class="step">
           <div class="step-num">2</div>
           <div class="step-body">
-            <div class="step-title">Nhấn ✏️ Sửa trong popup</div>
+            <div class="step-title">Nhấn ✏️ Sửa trong sheet thông tin</div>
             <div class="step-desc">Form chỉnh sửa mở ra với toàn bộ dữ liệu hiện tại đã được điền sẵn. Chỉnh sửa bất kỳ trường nào cần thay đổi.</div>
           </div>
         </div>
@@ -517,6 +518,48 @@
         <div class="tip-body">
           <div class="tip-title">Double-click để chỉnh sửa nhanh</div>
           <div class="tip-desc">Double-click vào dot đèn cũng mở thẳng form chỉnh sửa, không cần qua popup chi tiết.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE -->
+  <div class="section" id="s-delete">
+    <div class="section-header">
+      <span class="section-icon">🗑</span>
+      <span class="section-title">Xóa đèn khỏi hệ thống</span>
+    </div>
+    <div class="section-body">
+      <p>Dùng khi đèn được di dời, không còn tồn tại, hoặc hồ sơ bị nhập trùng. Thao tác xóa <strong>không thể hoàn tác</strong> — dữ liệu sẽ bị xóa khỏi Google Sheet.</p>
+      <div class="steps" style="margin-top:14px">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Mở form chỉnh sửa của đèn cần xóa</div>
+            <div class="step-desc">Nhấn vào dot đèn → sheet thông tin trượt lên → nhấn <strong>✏️ Sửa</strong>.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Nhấn nút 🗑 Xóa</div>
+            <div class="step-desc">Nút <strong style="color:#ef4444">🗑 Xóa</strong> nằm ở cuối form, chỉ hiện khi tài khoản có quyền xóa (<strong>admin</strong> hoặc <strong>user</strong>). Nhấn → xác nhận → đèn bị xóa ngay khỏi Sheet và biến mất khỏi bản đồ.</div>
+          </div>
+        </div>
+      </div>
+      <hr class="soft">
+      <div class="tip err">
+        <span class="tip-icon">⚠️</span>
+        <div class="tip-body">
+          <div class="tip-title">Không thể hoàn tác</div>
+          <div class="tip-desc">Xóa xong là mất dữ liệu vĩnh viễn. Nếu chỉ muốn ẩn đèn khỏi bản đồ, hãy đổi trạng thái sang <strong>Mã 3 / 4 / 6</strong> thay vì xóa.</div>
+        </div>
+      </div>
+      <div class="tip info" style="margin-top:8px">
+        <span class="tip-icon">🔐</span>
+        <div class="tip-body">
+          <div class="tip-title">Quyền xóa</div>
+          <div class="tip-desc">Chỉ tài khoản <strong>admin</strong> (👑) và <strong>user</strong> (👷) mới thấy nút Xóa. Tài khoản <strong>user1</strong> và <strong>demo</strong> không có quyền này.</div>
         </div>
       </div>
     </div>
@@ -546,7 +589,8 @@
               • LED hư (mã 1, 5) → <strong>LED bình thường (mã 3)</strong><br>
               • HPS hư (mã 7) → <strong>HPS bình thường (mã 4)</strong><br>
               • Đang bị Sự cố (mã 2) → <strong>Sự cố được khắc phục (mã 6)</strong><br>
-              • Ghi ngày sửa = <strong>hôm nay</strong><br>
+              • Ghi <strong>Ngày sửa</strong> = hôm nay<br>
+              • Ghi <strong>Người sửa</strong> = tên tài khoản đang đăng nhập<br>
               • Cập nhật lên Data ngay lập tức</div>
           </div>
         </div>
@@ -557,8 +601,8 @@
         <div class="tip-body">
           <div class="tip-title">Khi nào dùng Quick Fix vs Sửa form đầy đủ?</div>
           <div class="tip-desc">
-            <strong>Quick Fix:</strong> Khi chỉ cần xác nhận đã sửa xong, không cần ghi thêm vật tư hay người sửa.<br>
-            <strong>Sửa form đầy đủ:</strong> Khi cần ghi thêm <em>Người sửa</em>, <em>Vật tư sử dụng</em>, hoặc cập nhật ảnh sau sửa.
+            <strong>Quick Fix:</strong> Nhanh nhất — tự điền Người sửa và Ngày sửa, chỉ cần 1 chạm.<br>
+            <strong>Sửa form đầy đủ:</strong> Khi cần ghi thêm <em>Vật tư sử dụng</em>, thay đổi ảnh, hoặc chỉnh sửa nhiều trường cùng lúc.
           </div>
         </div>
       </div>
@@ -795,11 +839,23 @@
         </div>
         <div class="faq-item">
           <div class="faq-q">Làm sao cài ứng dụng lên màn hình điện thoại?</div>
-          <div class="faq-a">Trên Chrome Android: nhấn menu 3 chấm → <em>"Thêm vào màn hình chính"</em>. Trên Safari iOS: nhấn nút Chia sẻ → <em>"Thêm vào màn hình chính"</em>. Ứng dụng hỗ trợ PWA — hoạt động như app thật.</div>
+          <div class="faq-a">
+            <strong>Trang báo cáo sự cố (bcsc.html):</strong> Khi mở lần đầu, banner <em>"📲 Cài ứng dụng này"</em> tự hiện — nhấn vào để cài đặt ngay (Android Chrome). Trên iOS Safari, nhấn nút Chia sẻ → <em>"Thêm vào màn hình chính"</em>; ứng dụng sẽ gợi ý hướng dẫn tự động.<br><br>
+            <strong>Trang quản lý (dentat.html):</strong> Trên Chrome Android: nhấn menu 3 chấm → <em>"Thêm vào màn hình chính"</em>. Trên Safari iOS: nhấn nút Chia sẻ → <em>"Thêm vào màn hình chính"</em>. Cả hai trang đều hỗ trợ PWA — hoạt động như app thật, có thể dùng offline (xem bản đồ).
+          </div>
         </div>
         <div class="faq-item">
-          <div class="faq-q">Ai có thể xem và sửa dữ liệu?</div>
-          <div class="faq-a">Tất cả tài khoản có thể xem và thêm/sửa đèn. Tài khoản <strong>admin / quanly</strong> (hiển thị icon 👑) có quyền truy cập đầy đủ. Tài khoản <strong>nhân viên</strong> (icon 👷) cũng có thể thêm/sửa đèn nhưng không quản lý tài khoản.</div>
+          <div class="faq-q">Ai có thể xem, sửa, và xóa dữ liệu?</div>
+          <div class="faq-a">Có 4 cấp quyền:<br>
+            <strong>admin</strong> (👑): toàn quyền — xem, thêm, sửa, xóa, quản lý tài khoản.<br>
+            <strong>user</strong> (👷): xem, thêm, sửa, xóa đèn — không quản lý tài khoản.<br>
+            <strong>user1</strong>: xem và thêm/sửa đèn — không xóa, không quản lý tài khoản.<br>
+            <strong>demo</strong>: chỉ xem bản đồ, không ghi dữ liệu.
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Tại sao trang báo cáo sự cố (bcsc) bắt phải có tọa độ mới gửi được?</div>
+          <div class="faq-a">Tọa độ GPS là thông tin bắt buộc để đặt đèn chính xác trên bản đồ. Nhấn nút <strong>📍 Lấy tọa độ GPS</strong> — ứng dụng sẽ lấy vị trí điện thoại ngay lúc đó. Nếu nút không hoạt động, kiểm tra quyền vị trí đã cấp cho trình duyệt chưa.</div>
         </div>
         <div class="faq-item">
           <div class="faq-q">Số trụ bị trùng, phải xử lý thế nào?</div>

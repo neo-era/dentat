@@ -242,14 +242,14 @@
     <div class="fg"><label>Số trụ/ Số nhà *</label><input id="fSoTru" type="text" placeholder="VD: A-123"></div>
     <div class="fg"><label>Trạng thái *</label>
       <select id="fTrangThai">
-        <option value="">-- Chọn trạng thái --</option>
+        <!-- <option value="">-- Chọn trạng thái --</option>
         <option value="1">🔴 Đèn LED đang hư</option>
         <option value="7">🟠 Đèn HPS đang hư</option>
-        <option value="5">🟣 Đèn hư quá 10 ngày</option>
+        <option value="5">🟣 Đèn hư quá 10 ngày</option-->
         <option value="2" selected>🩷 Đang bị Sự cố</option>
-        <option value="3">🟢 Đèn LED sáng bình thường</option>
+        <!-- <option value="3">🟢 Đèn LED sáng bình thường</option>
         <option value="4">🔵 Đèn HPS sáng bình thường</option>
-        <option value="6">✅ Sự cố được khắc phục</option>
+        <option value="6">✅ Sự cố được khắc phục</option-->
       </select>
     </div>
     <div class="fg"><label>Người báo sự cố</label><input id="fNguoiPhatHien" type="text" placeholder="Tên người báo"></div>
@@ -308,22 +308,9 @@ window.addEventListener('DOMContentLoaded', async () => {
   getGPS(); // tự lấy vị trí ngay khi mở trang
 });
 
-// ── FETCH MAX ID ──
-async function fetchNextId() {
-  try {
-    const res = await fetch(GOOGLE_SHEET_CSV_URL + '&t=' + Date.now());
-    const txt = await res.text();
-    const lines = txt.split('\n').slice(1);
-    let maxId = 0;
-    lines.forEach(l => {
-      const cols = l.split(',');
-      const id = parseInt(cols[0]);
-      if (Number.isFinite(id) && id > maxId) maxId = id;
-    });
-    nextId = String(maxId + 1);
-  } catch(e) {
-    nextId = Date.now().toString().slice(-6);
-  }
+// ── FETCH NEXT ID (dùng timestamp để tránh trùng với dentat.html) ──
+function fetchNextId() {
+  nextId = Date.now().toString();
 }
 
 // ── GPS ──
@@ -477,6 +464,13 @@ async function submitReport() {
   const trangThai = document.getElementById('fTrangThai').value;
   if (!soTru) { showToast('Vui lòng nhập số trụ'); document.getElementById('fSoTru').focus(); return; }
   if (!trangThai) { showToast('Vui lòng chọn trạng thái'); return; }
+  const _lat = parseFloat(document.getElementById('fLat').value);
+  const _lon = parseFloat(document.getElementById('fLon').value);
+  if (!Number.isFinite(_lat) || !Number.isFinite(_lon)) {
+    showToast('📍 Vui lòng lấy tọa độ GPS trước khi gửi');
+    document.getElementById('gpsBtn').focus();
+    return;
+  }
 
   const btn = document.getElementById('submitBtn');
   const orig = btn.textContent;

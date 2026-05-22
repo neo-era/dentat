@@ -5,7 +5,7 @@
 ## Kiến trúc
 
 - **`dentat.html`** — toàn bộ frontend (HTML + CSS + JS gộp 1 file)
-- **`bcsc.html`** — trang báo cáo sự cố độc lập (form-only, không bản đồ); dùng cùng `GOOGLE_SCRIPT_URL` + `GOOGLE_SHEET_CSV_URL`; `fetchNextId` lấy max ID từ CSV; mặc định trạng thái `2`
+- **`bcsc.html`** — trang báo cáo sự cố độc lập (form-only, không bản đồ); dùng cùng `GOOGLE_SCRIPT_URL` + `GOOGLE_SHEET_CSV_URL`; `fetchNextId` dùng `Date.now().toString()` làm ID; mặc định trạng thái `2`; bắt buộc có tọa độ GPS trước khi gửi; tên người báo mặc định `Người dân` nếu bỏ trống; có banner cài PWA (Android `beforeinstallprompt` + iOS tip)
 - **`sw.js`** — Service Worker (cache static + tile bản đồ)
 - **`manifest.json`** — PWA manifest (icon 192/512)
 - **`gas.js`** — Google Apps Script deploy làm Web App (backend proxy)
@@ -43,7 +43,9 @@
 - Bản đồ Leaflet + MarkerCluster, chuyển OSM / vệ tinh Google
 - Thêm đèn: GPS hoặc click bản đồ, reverse geocode tên đường/phường qua Nominatim
 - Upload ảnh hiện trường: tối đa 3 ảnh/hồ sơ, tên file cách nhau bằng `;`
-- Quick Fix: cập nhật trạng thái 1 chạm từ popup
+- Quick Fix: cập nhật trạng thái 1 chạm từ bottom sheet; tự ghi `nguoiSua` = tên tài khoản đang đăng nhập và `ngaySua` = hôm nay
+- **Xóa đèn**: nút 🗑 Xóa trong form chỉnh sửa, chỉ hiển thị với role `admin` / `user`; gọi GAS action `delete_row` → xóa hàng khỏi Sheet
+- **Bottom sheet thông tin** (`#infoSheet`): thay thế Leaflet popup truyền thống (hay bị mất trên Android); tap dot đèn → sheet trượt lên từ dưới; tap ngoài hoặc nút ✕ để đóng
 - Dải thống kê: 7 chip màu, click để xem danh sách và nhảy bản đồ
 - Báo cáo: lọc theo ngày/phường/người, xuất Excel
 - Xuất CAD: file `.dxf` tọa độ VN2000 (UTM, GRS80)
@@ -54,9 +56,16 @@
 
 ## Phân quyền
 
-- **admin / quanly** (icon 👑): toàn quyền
-- **nhân viên** (icon 👷): thêm/sửa đèn, không quản lý tài khoản
-- **demo**: chỉ xem, không ghi dữ liệu
+| Role | Xem | Thêm/Sửa | Xóa | Quản lý TK |
+|------|-----|-----------|-----|------------|
+| `admin` (👑) | ✓ | ✓ | ✓ | ✓ |
+| `user` (👷) | ✓ | ✓ | ✓ | — |
+| `user1` | ✓ | ✓ | — | — |
+| `demo` | ✓ | — | — | — |
+
+- `canDelete()` = `role === 'admin' || role === 'user'`
+- `isAdmin` = `role === 'admin'` (dùng cho quản lý tài khoản)
+- Role lưu trong `localStorage` sau khi đăng nhập từ GAS
 
 ## Cấu hình quan trọng (trong `dentat.html`)
 
@@ -66,6 +75,12 @@ const GOOGLE_SHEET_CSV_URL = '...'; // Google Sheet CSV public URL
 const GITHUB_RAW_BASE = '...';      // Raw GitHub URL cho ảnh
 const MAX_IMG_LEN = 32767;          // Giới hạn ảnh base64
 ```
+
+## Toàn vẹn dữ liệu (data integrity)
+
+- **ID là timestamp**: cả `dentat.html` lẫn `bcsc.html` đều gán `id = Date.now().toString()` khi tạo bản ghi mới → ID 13 chữ số, thực tế không trùng nhau khi gửi đồng thời
+- **`findRowNum` trong GAS**: nếu payload có `id` → chỉ so khớp theo cột `ID`; nếu không có `id` → fallback theo `Số trụ` (tương thích dữ liệu cũ). Ngăn bcsc ghi chồng lên bản ghi của dentat có cùng số trụ
+- **Ảnh**: `uploadImageViaGas` trả về URL tuyệt đối (`GITHUB_RAW_BASE + path`), lưu vào cột `HÌnh ảnh`; nhiều ảnh nối bằng `;`
 
 ## PWA / Service Worker
 
@@ -81,3 +96,5 @@ const MAX_IMG_LEN = 32767;          // Giới hạn ảnh base64
 - **Cập nhật `huongdan.html`** mỗi khi thêm tính năng mới
 - Khi thêm trạng thái mới: cập nhật `STATUS_CONFIG`, select `#fTrangThai`, mảng `broken`, dải thống kê HTML, và `huongdan.html`
 - Ảnh: luôn resize trước khi upload, giới hạn `MAX_IMG_LEN`
+- Khi thêm/đổi role: cập nhật bảng Phân quyền trên, hàm `canDelete()`, nhãn role trong UI, và `huongdan.html`
+- `gas.js` có action `delete_row` — khi thêm action mới phải deploy lại Apps Script Web App

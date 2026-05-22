@@ -1595,9 +1595,8 @@ function fillForm(row, lat, lon) {
     markerImages = (p.hinhAnh || '').split(';').map(s => s.trim()).filter(Boolean).map(s => ({ dataUrl: '', path: normalizeImagePath(s) }));
     renderImagePreview();
   } else {
-    const maxId = loadedData.reduce((m, r) => { const n = parseInt(parseRow(r).id); return Number.isFinite(n) ? Math.max(m, n) : m; }, 0);
     ['fSoTru','fTenTu','fCongSuat','fDuong','fPhuong','fNguoiPhatHien','fNguoiSua','fVatTuSua','fGhiChu','fDienThoai'].forEach(id => document.getElementById(id).value = '');
-    document.getElementById('fId').value = maxId + 1;
+    document.getElementById('fId').value = Date.now().toString();
     document.getElementById('fLoaiDen').value = '';
     document.getElementById('fTrangThai').value = '1';
     document.getElementById('fLat').value = lat ?? '';

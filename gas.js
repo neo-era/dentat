@@ -241,10 +241,12 @@ function findRowNum(sheet, headers, hIdx, data) {
   for (let i = 0; i < allData.length; i++) {
     const rowId    = idColIdx    !== undefined ? norm(allData[i][idColIdx])    : '';
     const rowSoTru = soTruColIdx !== undefined ? norm(allData[i][soTruColIdx]) : '';
-    if ((searchId    && rowId    && rowId    === searchId)    ||
-        (searchSoTru && rowSoTru && rowSoTru === searchSoTru)) {
-      return i + 2; // i+2: bỏ header (hàng 1) + offset 0-based
-    }
+    // Nếu có ID → chỉ so khớp theo ID (tránh ghi chồng bcsc lên dentat)
+    // Không có ID → fallback theo Số trụ (tương thích dữ liệu cũ)
+    const matched = searchId
+      ? (rowId && rowId === searchId)
+      : (rowSoTru && rowSoTru === searchSoTru);
+    if (matched) return i + 2; // i+2: bỏ header (hàng 1) + offset 0-based
   }
   return -1;
 }
