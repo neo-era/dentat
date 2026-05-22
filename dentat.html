@@ -232,6 +232,19 @@
     .pc-btn.edit  { background: #f1f5f9; color: var(--text); }
     .pc-btn.fix   { background: var(--green); color: #fff; }
 
+    /* ── INFO BOTTOM SHEET ── */
+    #infoSheet { align-items: flex-end; padding: 0; }
+    #infoCard {
+      width: 100%; max-width: 520px; margin: 0 auto;
+      background: #fff; border-radius: 22px 22px 0 0;
+      max-height: 78vh; overflow-y: auto; position: relative;
+      padding-bottom: calc(var(--bottomnav-h, 64px) + var(--safe-bottom));
+      transform: translateY(100%); transition: transform .32s cubic-bezier(.4,0,.2,1);
+    }
+    #infoSheet.open #infoCard { transform: translateY(0); }
+    #infoCard .pc { border-radius: 0; }
+    #infoCard .info-drag { width: 36px; height: 4px; background: #d1d5db; border-radius: 99px; margin: 10px auto 4px; }
+
     /* ── MARKER DOTS ── */
     .den-marker-wrap { position: relative; }
     .den-dot {
@@ -310,6 +323,8 @@
     .btn-secondary { background: var(--bg); color: var(--text); border: 1.5px solid var(--border) !important; }
     .btn-primary { background: var(--orange); color: #fff; }
     .btn-primary:hover { background: #ea580c; }
+    .btn-danger { background: #fee2e2; color: #dc2626; border: 1.5px solid #fca5a5 !important; }
+    .btn-danger:hover { background: #fecaca; }
     .btn-primary:disabled { background: #94a3b8; cursor: not-allowed; }
 
     /* ── REPORT MODAL ── */
@@ -515,7 +530,7 @@
   try {
     var u = JSON.parse(localStorage.getItem('dt_user') || 'null');
     if (u && u.username) {
-      var isAdmin = u.role === 'admin' || u.role === 'quanly';
+      var isAdmin = u.role === 'admin';
       var isDemo  = u.role === 'demo';
       document.getElementById('topbarAv').textContent = isDemo ? '👁' : isAdmin ? '👑' : '👷';
       document.getElementById('topbarUname').textContent = u.displayName || u.username;
@@ -702,9 +717,18 @@
       <div class="img-preview" id="fImagePreview"></div>
     </div>
     <div class="mpop-footer">
+      <button class="btn-danger" id="mpopDeleteBtn" onclick="deleteMarkerPopup()" style="display:none">🗑 Xóa</button>
       <button class="btn-secondary" onclick="cancelMarkerPopup()">Hủy</button>
       <button class="btn-primary" id="mpopSaveBtn" onclick="saveMarkerPopup()">💾 Lưu dữ liệu</button>
     </div>
+  </div>
+</div>
+
+<!-- ── INFO BOTTOM SHEET ── -->
+<div id="infoSheet" class="mpop-overlay" onclick="if(event.target===this)closeInfoSheet()">
+  <div id="infoCard">
+    <div class="info-drag"></div>
+    <div id="infoCardContent"></div>
   </div>
 </div>
 
@@ -884,6 +908,9 @@ function logout() {
 function isDemoUser() {
   return currentUser && currentUser.role === 'demo';
 }
+function canDelete() {
+  return currentUser && (currentUser.role === 'admin' || currentUser.role === 'user');
+}
 function denyDemo() {
   showToast('🔒 Tài khoản demo chỉ được xem, không thể thực hiện thao tác này');
   return true;
@@ -891,10 +918,14 @@ function denyDemo() {
 
 function updateSidebarUser() {
   if (!currentUser) return;
-  const isDemo  = currentUser.role === 'demo';
-  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'quanly';
+  const r = currentUser.role;
+  const isDemo  = r === 'demo';
+  const isAdmin = r === 'admin';
   const av   = isDemo ? '👁' : isAdmin ? '👑' : '👷';
-  const role = isDemo ? 'Tài khoản demo (chỉ xem)' : isAdmin ? 'Quản trị viên' : 'Nhân viên';
+  const role = isDemo ? 'Tài khoản demo (chỉ xem)'
+             : isAdmin ? 'Quản trị viên'
+             : r === 'user' ? 'Nhân viên (xem/sửa/xóa)'
+             : 'Nhân viên (xem/sửa)';
   const name = currentUser.displayName || currentUser.username;
   document.getElementById('sbUserAv').textContent = av;
   document.getElementById('sbUserName').textContent = name;
@@ -941,7 +972,7 @@ function searchMarkers() {
     return normalizeText(p.soTru + ' ' + p.duong + ' ' + p.phuong + ' ' + p.tenTu).includes(q);
   });
   if (!hits.length) { showToast('Không tìm thấy kết quả'); return; }
-  if (hits.length === 1) { map.setView([hits[0].lat, hits[0].lon], 18); hits[0].marker.openPopup(); return; }
+  if (hits.length === 1) { map.setView([hits[0].lat, hits[0].lon], 18); openInfoSheet(hits[0].rowIndex); return; }
   hits.slice(0, 15).forEach(e => {
     const p = parseMarkerRow(e.row); const cfg = STATUS_CONFIG[String(p.trangThai)] || {};
     const li = document.createElement('li');
@@ -949,7 +980,7 @@ function searchMarkers() {
       <span><strong>${p.soTru || '—'}</strong> &nbsp;
       <span style="color:#64748b;font-size:11px">${p.duong || ''} ${p.phuong || ''}</span></span>
       <span style="color:${cfg.color||'#64748b'};font-size:10px;margin-left:auto;white-space:nowrap">${cfg.label||''}</span></a>`;
-    li.querySelector('a').onclick = ev => { ev.preventDefault(); map.setView([e.lat, e.lon], 18); e.marker.openPopup(); drop.style.display = 'none'; };
+    li.querySelector('a').onclick = ev => { ev.preventDefault(); map.setView([e.lat, e.lon], 18); openInfoSheet(e.rowIndex); drop.style.display = 'none'; };
     list.appendChild(li);
   });
   drop.style.display = 'block';
@@ -1199,7 +1230,7 @@ function createPopupContent(row, rowIndex) {
 
   const routeBtn = hasRoute ? `<button class="pc-btn route" onclick="routeToMarker(${rowIndex})">🧭 Đi đến</button>` : '';
   const editBtn  = hasEdit  ? `<button class="pc-btn edit"  onclick="openEditPopup(${rowIndex})">✏️ Chỉnh sửa</button>` : '';
-  const fixBtn   = hasFix   ? `<button class="pc-btn fix"   onclick="quickFix(${rowIndex});this.closest('.leaflet-popup').remove()">✅ Đã sửa</button>` : '';
+  const fixBtn   = hasFix   ? `<button class="pc-btn fix"   onclick="quickFix(${rowIndex});closeInfoSheet()">✅ Đã sửa</button>` : '';
 
   return `<div class="pc">
     <div class="pc-topbar" style="background:${cfg.color}"></div>
@@ -1266,7 +1297,7 @@ function addMarkerRow(row, idx) {
   const icon = createStatusIcon(p.trangThai);
   const marker = L.marker([p.lat, p.lon], { icon });
   const entry = { lat: p.lat, lon: p.lon, name: p.soTru, marker, row, rowIndex: idx, labelMarker: null };
-  marker.bindPopup(() => createPopupContent(entry.row, idx), { maxWidth: 320, minWidth: 250 });
+  marker.on('click', () => openInfoSheet(idx));
   marker.on('dblclick', () => openEditPopup(idx));
   markersCluster.addLayer(marker);
   if (p.soTru) {
@@ -1442,7 +1473,7 @@ function flyToEntry(index) {
   if (!entry) return;
   closeStatusList();
   map.setView([entry.lat, entry.lon], 18);
-  setTimeout(() => entry.marker.openPopup(), 380);
+  setTimeout(() => openInfoSheet(index), 380);
 }
 
 // ── IMPORT LOCAL FILE ──
@@ -1532,12 +1563,14 @@ function showFormAt(lat, lon) {
 function openEditPopup(index) {
   if (isDemoUser()) { denyDemo(); return; }
   if (index < 0 || index >= loadedData.length) { showToast('Không tìm thấy dữ liệu'); return; }
+  closeInfoSheet();
   editingIndex = index;
   fillForm(loadedData[index]);
 }
 
 function fillForm(row, lat, lon) {
   document.getElementById('mpopTitle').textContent = row ? `✏️ Sửa: ${parseRow(row).soTru || 'đèn'}` : '➕ Thêm đèn mới';
+  document.getElementById('mpopDeleteBtn').style.display = (row && canDelete()) ? '' : 'none';
   if (row) {
     const p = parseRow(row);
     document.getElementById('fId').value = p.id;
@@ -1586,6 +1619,48 @@ function hideForm() {
   editingIndex = null; markerImages = [];
 }
 function cancelMarkerPopup() { hideForm(); }
+
+// ── INFO SHEET ──
+function openInfoSheet(idx) {
+  if (idx == null || idx < 0 || idx >= loadedData.length) return;
+  document.getElementById('infoCardContent').innerHTML = createPopupContent(loadedData[idx], idx);
+  document.getElementById('infoSheet').classList.add('open');
+}
+function closeInfoSheet() {
+  document.getElementById('infoSheet').classList.remove('open');
+}
+
+async function deleteMarkerPopup() {
+  if (!canDelete()) { showToast('🔒 Tài khoản của bạn không có quyền xóa'); return; }
+  if (editingIndex === null) return;
+  const row = loadedData[editingIndex];
+  const soTru = parseRow(row).soTru || 'đèn này';
+  if (!confirm(`Xóa vĩnh viễn "${soTru}" khỏi dữ liệu?\nThao tác này không thể hoàn tác.`)) return;
+
+  const btn = document.getElementById('mpopDeleteBtn');
+  btn.disabled = true; btn.textContent = '⏳ Đang xóa...';
+  try {
+    await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete_row', ...row })
+    });
+    const entry = markers[editingIndex];
+    if (entry) {
+      markersCluster.removeLayer(entry.marker);
+      if (entry.labelMarker) labelLayerGroup.removeLayer(entry.labelMarker);
+    }
+    loadedData.splice(editingIndex, 1);
+    markers.splice(editingIndex, 1);
+    applyFilter(); updateStats(); buildFilterChips();
+    hideForm();
+    showToast(`🗑 Đã xóa: ${soTru}`);
+  } catch(e) {
+    showToast('❌ Lỗi: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '🗑 Xóa';
+  }
+}
 
 // ── REVERSE GEOCODE ──
 async function reverseGeocode(lat, lon) {
@@ -1706,7 +1781,6 @@ async function saveMarkerPopup() {
         if (entry.labelMarker) labelLayerGroup.removeLayer(entry.labelMarker);
         const newIcon = createStatusIcon(trangThai);
         entry.marker.setLatLng([lat, lon]); entry.marker.setIcon(newIcon);
-        entry.marker.setPopupContent(createPopupContent(payload, editingIndex));
         markersCluster.addLayer(entry.marker);
         if (soTru) {
           entry.labelMarker = L.marker([lat, lon], {
@@ -1743,7 +1817,6 @@ async function quickFix(index) {
   if (entry) {
     entry.row = rowData;
     entry.marker.setIcon(createStatusIcon(newStatus));
-    entry.marker.closePopup();
   }
   applyFilter(); updateStats(); buildFilterChips();
   showToast(`✅ Đã đánh dấu ${p.soTru} sửa xong hôm nay`);
@@ -2114,6 +2187,7 @@ function exportReport() {
 
 // ── ROUTE ──
 function routeToMarker(index) {
+  closeInfoSheet();
   if (!navigator.geolocation) { showToast('Trình duyệt không hỗ trợ GPS'); return; }
   const entry = markers[index];
   if (!entry) return;

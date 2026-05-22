@@ -191,6 +191,12 @@ function doPost(e) {
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
     const hIdx = buildHeaderIndex(headers);
 
+    if (data.action === 'delete_row') {
+      const rowNum = findRowNum(sheet, headers, hIdx, data);
+      if (rowNum > 0) sheet.deleteRow(rowNum);
+      return jsonResponse({ status: 'ok' });
+    }
+
     if (data.action === 'full_update') {
       const rowNum = findRowNum(sheet, headers, hIdx, data);
       if (rowNum > 0) {
