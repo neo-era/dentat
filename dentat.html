@@ -1192,7 +1192,8 @@ async function uploadImageViaGas(dataUrl, soTru) {
   let data;
   try { data = JSON.parse(text); } catch(e) { throw new Error('GAS trả về không phải JSON: ' + text.slice(0, 200)); }
   if (data.status !== 'ok') throw new Error(data.message || 'Upload thất bại');
-  return data.path;
+  const p = data.path || '';
+  return p.startsWith('http') ? p : GITHUB_RAW_BASE + p.replace(/^\//, '');
 }
 
 // ── POPUP CONTENT ──
@@ -1809,8 +1810,9 @@ async function quickFix(index) {
   const p = parseRow(loadedData[index]);
   const newStatus = p.trangThai === '2' ? '6' : (p.loaiDen === 'HPS' ? '4' : '3');
   const today = todayStr();
+  const nguoiSua = currentUser?.displayName || currentUser?.username || '';
   const rowData = { ...loadedData[index] };
-  applyFieldsToRow(rowData, { trangThai: newStatus, ngaySua: today });
+  applyFieldsToRow(rowData, { trangThai: newStatus, ngaySua: today, nguoiSua });
   rowData.action = 'full_update';
   loadedData[index] = rowData;
   const entry = markers[index];
