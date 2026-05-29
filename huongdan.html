@@ -167,7 +167,7 @@
 <nav class="topbar">
   <a href="dentat.html" class="topbar-back">← Mở app</a>
   <span class="topbar-title">💡 Hướng dẫn sử dụng</span>
-  <span class="topbar-ver">v1.7</span>
+  <span class="topbar-ver">v1.8</span>
 </nav>
 
 <!-- HERO -->
@@ -190,6 +190,7 @@
       <li><a href="#s-add"><span class="ti">➕</span>Thêm đèn hư mới</a></li>
       <li><a href="#s-edit"><span class="ti">✏️</span>Xem chi tiết & sửa thông tin đèn</a></li>
       <li><a href="#s-delete"><span class="ti">🗑</span>Xóa đèn khỏi hệ thống</a></li>
+      <li><a href="#s-bienban"><span class="ti">📄</span>Xuất biên bản sự cố</a></li>
       <li><a href="#s-fix"><span class="ti">✅</span>Đánh dấu đã sửa xong</a></li>
       <li><a href="#s-filter"><span class="ti">🔽</span>Lọc & tìm kiếm</a></li>
       <li><a href="#s-zalo"><span class="ti">📥</span>Nhập nhanh từ tin nhắn Zalo</a></li>
@@ -565,6 +566,72 @@
     </div>
   </div>
 
+  <!-- BIEN BAN -->
+  <div class="section" id="s-bienban">
+    <div class="section-header">
+      <span class="section-icon">📄</span>
+      <span class="section-title">Xuất biên bản sự cố</span>
+    </div>
+    <div class="section-body">
+      <p>Xuất <strong>Biên bản về Sự cố, Bất cập trong Công tác Quản lý, Bảo dưỡng Hệ thống Chiếu sáng Đô thị</strong> dạng PDF hoặc Word từ hồ sơ từng đèn — không cần điền lại từ đầu.</p>
+      <div class="steps" style="margin-top:14px">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Nhấn vào dot đèn trên bản đồ</div>
+            <div class="step-desc">Sheet thông tin trượt lên từ dưới màn hình, hiển thị đầy đủ thông tin hồ sơ đèn.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Nhấn nút 📄 PDF hoặc 📝 Word</div>
+            <div class="step-desc">
+              <strong>📄 PDF</strong> — Mở tab mới với bản xem trước biên bản A4 đầy đủ 2 trang.<br>
+              <strong>📝 Word</strong> — Tải về file <code>.doc</code> ngay lập tức, mở bằng Microsoft Word hoặc LibreOffice để chỉnh sửa trước khi in.
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Lưu PDF (nếu dùng nút 📄 PDF)</div>
+            <div class="step-desc">Trong tab xem trước, nhấn nút <strong>💾 Lưu PDF</strong> (thanh xanh phía trên) → hộp thoại in mở ra → chọn máy in <strong>Save as PDF</strong> / <strong>Microsoft Print to PDF</strong> → nhấn Lưu. Để in thẳng ra giấy, chọn máy in thật thay vì PDF.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Ký tay sau khi in</div>
+            <div class="step-desc">Trang cuối biên bản có 2 vùng chữ ký kẻ dòng trống sẵn để ký tay: <strong>Chuyên viên phụ trách địa bàn</strong> (TTQLHTKT) bên trái và <strong>Phụ trách KT thi công</strong> (CSCC) bên phải.</div>
+          </div>
+        </div>
+      </div>
+      <hr class="soft">
+      <div class="tip info">
+        <span class="tip-icon">✍️</span>
+        <div class="tip-body">
+          <div class="tip-title">Tên người ký tự động theo phường</div>
+          <div class="tip-desc">Tên chuyên viên và phụ trách kỹ thuật được tra tự động từ bảng <strong>PhuTrach</strong> trong Google Sheet theo phường của đèn. Admin cập nhật trực tiếp trên Sheet khi nhân sự thay đổi — không cần sửa code.</div>
+        </div>
+      </div>
+      <div class="tip warn" style="margin-top:8px">
+        <span class="tip-icon">⚠️</span>
+        <div class="tip-body">
+          <div class="tip-title">Phường chưa có trong danh sách PhuTrach</div>
+          <div class="tip-desc">Nếu phường của đèn chưa được cấu hình trong tab PhuTrach, vùng ký tên sẽ để trống — điền tay sau khi in.</div>
+        </div>
+      </div>
+      <div class="tip ok" style="margin-top:8px">
+        <span class="tip-icon">🖼️</span>
+        <div class="tip-body">
+          <div class="tip-title">Ảnh hiện trường đính kèm tự động</div>
+          <div class="tip-desc">Ảnh từ hồ sơ đèn (tối đa 3) được nhúng vào mục 8 của biên bản. Chỉ ảnh có URL từ GitHub được nhúng — ảnh chưa upload hoặc ảnh local sẽ bị bỏ qua.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- QUICK FIX -->
   <div class="section" id="s-fix">
     <div class="section-header">
@@ -626,16 +693,24 @@
         <li>Trong panel, nhấn vào từng đèn để <strong>nhảy đến vị trí</strong> trên bản đồ</li>
       </ul>
       <hr class="soft">
-      <p style="font-weight:700;font-size:14px;margin-bottom:10px">Lọc nâng cao (Menu ☰)</p>
+      <p style="font-weight:700;font-size:14px;margin-bottom:10px">Bộ lọc nâng cao (Menu ☰ → Bộ lọc)</p>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">3 bộ lọc nằm gọn trong section <strong>Bộ lọc</strong> của Menu:</p>
       <table class="tbl">
-        <thead><tr><th>Bộ lọc</th><th>Mô tả</th></tr></thead>
+        <thead><tr><th>Bộ lọc</th><th>Cách dùng</th></tr></thead>
         <tbody>
-          <tr><td><strong>Theo trạng thái</strong></td><td>Ẩn / hiện đèn theo mã trạng thái (1, 2, 3, 4, 5, 6, 7)</td></tr>
-          <tr><td><strong>Theo loại đèn</strong></td><td>Chọn xem Tất cả / LED / HPS</td></tr>
-          <tr><td><strong>Theo người phát hiện</strong></td><td>Lọc đèn do một nhân viên cụ thể báo cáo</td></tr>
-          <tr><td><strong>Xóa bộ lọc</strong></td><td>Hiện nút "Xóa tất cả bộ lọc" khi đang lọc</td></tr>
+          <tr><td><strong>Trạng thái</strong></td><td>Hộp danh sách 7 trạng thái. Nhấn chọn 1 trạng thái = chỉ hiện trạng thái đó. Ctrl+click (PC) / tap nhiều lần (mobile) = chọn nhiều. Không chọn gì = hiện tất cả.</td></tr>
+          <tr><td><strong>Loại đèn</strong></td><td>Dropdown chọn Tất cả / LED / HPS.</td></tr>
+          <tr><td><strong>Người phát hiện</strong></td><td>Dropdown danh sách tên. Chọn tên = chỉ hiện đèn do người đó báo cáo.</td></tr>
+          <tr><td><strong>Xóa bộ lọc</strong></td><td>Nút đỏ xuất hiện khi đang lọc — nhấn để về mặc định hiện tất cả.</td></tr>
         </tbody>
       </table>
+      <div class="tip info" style="margin-top:10px">
+        <span class="tip-icon">💡</span>
+        <div class="tip-body">
+          <div class="tip-title">Đồng bộ với dải thống kê</div>
+          <div class="tip-desc">Nhấn vào chip màu trên dải thống kê (phía trên bản đồ) cũng thay đổi bộ lọc trạng thái — hộp danh sách trong Menu tự cập nhật theo.</div>
+        </div>
+      </div>
     </div>
   </div>
 

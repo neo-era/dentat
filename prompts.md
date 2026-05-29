@@ -8,7 +8,7 @@ Thực hiện theo thứ tự. Mỗi prompt là một bước độc lập.
 | 1 | Thêm PHUTRACH_CSV_URL + loadPhuTrach() | ✅ Xong |
 | 2 | Thêm nút 📄 Biên bản vào infoSheet | ✅ Xong |
 | 3 | Viết hàm printBienBan() | ✅ Xong |
-| 4 | Cập nhật huongdan.html v1.8 | ⏳ Chưa làm |
+| 4 | Cập nhật huongdan.html v1.8 | ✅ Xong |
 
 ---
 

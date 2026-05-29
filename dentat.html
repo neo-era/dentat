@@ -184,6 +184,12 @@
     .filter-chip.inactive { opacity: .5; }
     .filter-inline-row { display: flex; flex-wrap: wrap; gap: 6px; }
     .filter-inline-row .filter-chip { width: auto; margin-bottom: 0; }
+    .sb-filter-group { margin-bottom: 8px; }
+    .sb-filter-lbl { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; display: block; margin-bottom: 3px; }
+    .sb-listbox { width: 100%; background: #fff; border: 1.5px solid var(--border); border-radius: 8px; color: var(--text); font-family: inherit; font-size: 13px; outline: none; }
+    .sb-listbox:focus { border-color: var(--sky); box-shadow: 0 0 0 3px rgba(14,165,233,.12); }
+    .sb-listbox option { padding: 5px 10px; }
+    .sb-listbox-drop { height: 36px; padding: 0 8px; cursor: pointer; }
 
     /* ── TOAST ── */
     #toast {
@@ -615,19 +621,25 @@
   </div>
   <div class="sb-body">
     <div class="sb-section">
-      <div class="sb-section-title">Lọc theo trạng thái</div>
-      <div id="filterChips"></div>
-    </div>
-    <div class="sb-section">
-      <div class="sb-section-title">Lọc theo loại đèn</div>
-      <div id="filterLoaiDenChips" class="filter-inline-row"></div>
-    </div>
-    <div class="sb-section">
-      <div class="sb-section-title">Lọc theo người phát hiện</div>
-      <div id="filterNguoiChips" class="filter-inline-row"></div>
-    </div>
-    <div class="sb-section" id="clearFilterSection" style="display:none">
-      <button class="sb-btn" style="color:var(--red);border-color:var(--red)" onclick="clearAllFilters()"><span class="bi">✕</span>Xóa tất cả bộ lọc</button>
+      <div class="sb-section-title">Bộ lọc</div>
+      <div class="sb-filter-group">
+        <span class="sb-filter-lbl">Trạng thái</span>
+        <select multiple id="filterStatusSelect" class="sb-listbox" size="7"
+          onchange="onStatusSelectChange(this)"></select>
+      </div>
+      <div class="sb-filter-group">
+        <span class="sb-filter-lbl">Loại đèn</span>
+        <select id="filterLoaiDenSelect" class="sb-listbox sb-listbox-drop"
+          onchange="filterLoaiDen=this.value;applyFilter();buildExtraFilters();updateStats()"></select>
+      </div>
+      <div class="sb-filter-group">
+        <span class="sb-filter-lbl">Người phát hiện</span>
+        <select id="filterNguoiSelect" class="sb-listbox sb-listbox-drop"
+          onchange="filterNguoi=this.value;applyFilter();buildExtraFilters();updateStats()"></select>
+      </div>
+      <div id="clearFilterSection" style="display:none">
+        <button class="sb-btn" style="color:var(--red);border-color:var(--red)" onclick="clearAllFilters()"><span class="bi">✕</span>Xóa tất cả bộ lọc</button>
+      </div>
     </div>
     <div class="sb-section">
       <div class="sb-section-title">Hành động</div>
@@ -1238,7 +1250,7 @@ function createPopupContent(row, rowIndex) {
   const routeBtn   = hasRoute ? `<button class="pc-btn route" onclick="routeToMarker(${rowIndex})">🧭 Đi đến</button>` : '';
   const editBtn    = hasEdit  ? `<button class="pc-btn edit"  onclick="openEditPopup(${rowIndex})">✏️ Chỉnh sửa</button>` : '';
   const fixBtn     = hasFix   ? `<button class="pc-btn fix"   onclick="quickFix(${rowIndex});closeInfoSheet()">✅ Đã sửa</button>` : '';
-  const bienBanBtn = `<button class="pc-btn doc" onclick="printBienBan(${rowIndex})">📄 In/PDF</button>`;
+  const bienBanBtn = `<button class="pc-btn doc" onclick="printBienBan(${rowIndex})">📄 PDF</button>`;
   const wordBtn    = `<button class="pc-btn word" onclick="downloadBienBanWord(${rowIndex})">📝 Word</button>`;
 
   return `<div class="pc">
@@ -1367,18 +1379,23 @@ function updateStats() {
   document.getElementById('statTotal').textContent = `Tổng: ${total}`;
 }
 function buildFilterChips() {
+  const sel = document.getElementById('filterStatusSelect');
+  if (!sel) return;
   const counts = {}; Object.keys(STATUS_CONFIG).forEach(k => counts[k] = 0);
   loadedData.forEach(row => { const p = parseRow(row); const s = String(p.trangThai||''); if (counts[s] !== undefined) counts[s]++; });
-  const container = document.getElementById('filterChips');
-  container.innerHTML = '';
+  sel.innerHTML = '';
   Object.entries(STATUS_CONFIG).forEach(([s, cfg]) => {
-    const el = document.createElement('div');
-    el.className = 'filter-chip' + (hiddenFilters.has(s) ? ' inactive' : ' active');
-    el.style.color = cfg.color; el.style.borderColor = hiddenFilters.has(s) ? 'var(--border)' : cfg.color;
-    el.innerHTML = `<div class="fc-dot" style="background:${cfg.color}"></div>${cfg.label}<span class="fc-cnt">${counts[s]}</span>`;
-    el.onclick = () => toggleFilter(s);
-    container.appendChild(el);
+    const opt = document.createElement('option');
+    opt.value = s;
+    opt.textContent = cfg.label + ' (' + (counts[s] || 0) + ')';
+    opt.selected = !hiddenFilters.has(s);
+    sel.appendChild(opt);
   });
+}
+function onStatusSelectChange(sel) {
+  hiddenFilters.clear();
+  [...sel.options].forEach(opt => { if (!opt.selected) hiddenFilters.add(opt.value); });
+  applyFilter(); updateStats(); buildExtraFilters();
 }
 function buildLegend() {
   const el = document.getElementById('sbLegend');
@@ -1390,34 +1407,20 @@ function buildLegend() {
   ).join('');
 }
 function buildExtraFilters() {
-  // Loại đèn
-  const loaiWrap = document.getElementById('filterLoaiDenChips');
-  if (loaiWrap) {
-    loaiWrap.innerHTML = '';
-    [['', 'Tất cả', '#64748b'], ['LED', 'LED', '#10b981'], ['HPS', 'HPS', '#f97316']].forEach(([val, label, color]) => {
-      const active = filterLoaiDen === val;
-      const el = document.createElement('button');
-      el.className = 'filter-chip' + (active ? ' active' : '');
-      el.style.color = active ? color : '';
-      el.textContent = label;
-      el.onclick = () => { filterLoaiDen = val; applyFilter(); buildExtraFilters(); updateStats(); };
-      loaiWrap.appendChild(el);
-    });
+  // Loại đèn dropdown
+  const loaiSel = document.getElementById('filterLoaiDenSelect');
+  if (loaiSel) {
+    loaiSel.innerHTML = '<option value="">— Tất cả loại —</option>'
+      + '<option value="LED">LED</option><option value="HPS">HPS</option>';
+    loaiSel.value = filterLoaiDen;
   }
-  // Người phát hiện
-  const nguoiWrap = document.getElementById('filterNguoiChips');
-  if (nguoiWrap) {
-    nguoiWrap.innerHTML = '';
+  // Người phát hiện dropdown
+  const nguoiSel = document.getElementById('filterNguoiSelect');
+  if (nguoiSel) {
     const names = [...new Set(loadedData.map(r => (parseRow(r).nguoiPhatHien || '').trim()).filter(Boolean))].sort();
-    [['', 'Tất cả'], ...names.map(n => [n, n])].forEach(([val, label]) => {
-      const active = filterNguoi === val;
-      const el = document.createElement('button');
-      el.className = 'filter-chip' + (active ? ' active' : '');
-      el.style.color = active ? 'var(--sky)' : '';
-      el.textContent = label;
-      el.onclick = () => { filterNguoi = val; applyFilter(); buildExtraFilters(); updateStats(); };
-      nguoiWrap.appendChild(el);
-    });
+    nguoiSel.innerHTML = '<option value="">— Tất cả —</option>'
+      + names.map(n => `<option value="${n}">${n}</option>`).join('');
+    nguoiSel.value = filterNguoi;
   }
   // Nút xóa bộ lọc
   const hasFilter = hiddenFilters.size > 0 || filterLoaiDen !== '' || filterNguoi !== '';
@@ -1717,8 +1720,8 @@ function buildBienBanContent(idx) {
     + '<div class="sb">' + deXuat + '</div>' + dl(3) + '</div>'
     + '<div class="sc"><span class="st">7 - Ý kiến của cán bộ Giám sát:</span>'
     + '<div class="sb">'
-    + '<div>- Cho phép triển khai công việc: <span class="cb">&#10003;</span> Có &nbsp;&nbsp;&nbsp; <span class="cb">&nbsp;</span> Không</div>'
-    + '<div style="margin-top:6px">- Yêu cầu tiến độ thực hiện: <span class="cb">&nbsp;</span> Xử lý gấp &nbsp;&nbsp;&nbsp; <span class="cb">&#10003;</span> Bình thường</div>'
+    + '<div>- Cho phép triển khai công việc: <span class="cb">&nbsp;</span> Có &nbsp;&nbsp;&nbsp; <span class="cb">&nbsp;</span> Không</div>'
+    + '<div style="margin-top:6px">- Yêu cầu tiến độ thực hiện: <span class="cb">&nbsp;</span> Xử lý gấp &nbsp;&nbsp;&nbsp; <span class="cb">&nbsp;</span> Bình thường</div>'
     + '<div style="margin-top:6px">- Ý kiến khác:</div>' + dl(2)
     + '</div></div>'
     + '<div class="sc"><span class="st">8 - Hình ảnh sự cố, bất cập đính kèm:</span>'
@@ -1738,15 +1741,20 @@ function printBienBan(idx) {
   const b = buildBienBanContent(idx);
   if (!b) return;
   const printCss = '\n@page { size:A4; margin:15mm 15mm 15mm 20mm; }'
-    + '\n@media print { body{margin:0;background:#fff} .page{width:100%;margin:0;padding:0;min-height:unset;box-shadow:none} }';
-  const printScript = '<script>window.onload=function(){window.print();}<\/script>';
-  const html = '<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><title>Bien ban su co ' + b.maSuCo + '</title><style>' + b.css + printCss + '</style></head><body>' + b.pg1 + b.pg2 + printScript + '</body></html>';
+    + '\n@media print { #pdf-toolbar{display:none!important} body{margin:0;background:#fff} .page{width:100%;margin:0;padding:0;min-height:unset;box-shadow:none} }';
+  const toolbar = '<div id="pdf-toolbar" style="position:fixed;top:0;left:0;right:0;z-index:999;background:#1d4ed8;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;font-family:sans-serif;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.3)">'
+    + '<button onclick="window.print()" style="background:#fff;color:#1d4ed8;border:none;padding:8px 18px;border-radius:6px;font-weight:700;font-size:14px;cursor:pointer">💾 Lưu PDF</button>'
+    + '<span>→ Trong hộp thoại in, chọn <strong>Save as PDF</strong> / <strong>Microsoft Print to PDF</strong></span>'
+    + '<button onclick="this.parentNode.style.display=\'none\'" style="margin-left:auto;background:transparent;border:none;color:#fff;font-size:18px;cursor:pointer;line-height:1">✕</button>'
+    + '</div>'
+    + '<div style="height:52px"></div>';
+  const html = '<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><title>Bien ban su co ' + b.maSuCo + '</title><style>' + b.css + printCss + '</style></head><body>' + toolbar + b.pg1 + b.pg2 + '</body></html>';
   try {
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const w = window.open(url, '_blank');
     if (!w) { showToast('Trình duyệt chặn popup — vui lòng cho phép popup cho trang này'); return; }
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 30000);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
   } catch(e) { showToast('Lỗi xuất biên bản: ' + e.message); }
 }
 
@@ -2414,6 +2422,7 @@ if ('serviceWorker' in navigator) {
 window.onload = () => {
   initializeMap();
   buildFilterChips();
+  buildExtraFilters();
   buildLegend();
   loadPhuTrach();
   document.getElementById('reportModal').addEventListener('click', e => { if (e.target === document.getElementById('reportModal')) closeReportModal(); });
