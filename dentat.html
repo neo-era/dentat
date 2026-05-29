@@ -815,6 +815,7 @@
 // ── CONSTANTS ──
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0YAMrbBpNdTL0cmE_1LdQ7SJzeUW0J0VHhWpv3WqW9LvLyBTP8YV2nPzuuR27pJTZ8g/exec';
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?output=csv';
+const PHUTRACH_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?gid=2043665350&single=true&output=csv';
 const MAX_IMG_LEN = 32767;
 
 const STATUS_CONFIG = {
@@ -842,6 +843,7 @@ let filterLoaiDen = '';
 let filterNguoi = '';
 let toastTimer;
 let currentUser = null; // { username, displayName, role }
+let phuTrachMap = {};
 
 // ── AUTH ──
 function checkAuth() {
@@ -1528,6 +1530,29 @@ async function loadDataFromSheet() {
     console.error('[dentat] Load error:', e);
     showToast('❌ Không tải được dữ liệu: ' + e.message);
   }
+}
+
+async function loadPhuTrach() {
+  try {
+    const res = await fetch(PHUTRACH_CSV_URL + '&t=' + Date.now());
+    if (!res.ok) return;
+    const csv = await res.text();
+    const wb = XLSX.read(csv, { type: 'string' });
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+    phuTrachMap = {};
+    if (!rows.length) return;
+    const sampleKeys = Object.keys(rows[0]);
+    const colPhuong = sampleKeys.find(k => normalizeKey(k).includes('phuong') || normalizeKey(k).includes('xa'));
+    const colChuyenVien = sampleKeys.find(k => normalizeKey(k).includes('chuyen vien') || normalizeKey(k).includes('chuyen  vien'));
+    const colPhuTrach = sampleKeys.find(k => normalizeKey(k).includes('phu trach'));
+    rows.forEach(r => {
+      const phuong = colPhuong ? String(r[colPhuong] || '').trim() : '';
+      const chuyenVien = colChuyenVien ? String(r[colChuyenVien] || '').trim() : '';
+      const phuTrachKT = colPhuTrach ? String(r[colPhuTrach] || '').trim() : '';
+      if (phuong) phuTrachMap[normalizeKey(phuong)] = { chuyenVien, phuTrachKT };
+    });
+    console.log('[dentat] PhuTrach loaded:', Object.keys(phuTrachMap).length, 'phuong/xa');
+  } catch(e) { console.warn('[dentat] loadPhuTrach error:', e.message); }
 }
 
 // ── ADD MARKER MODE ──
@@ -2367,6 +2392,7 @@ window.onload = () => {
   initializeMap();
   buildFilterChips();
   buildLegend();
+  loadPhuTrach();
   document.getElementById('reportModal').addEventListener('click', e => { if (e.target === document.getElementById('reportModal')) closeReportModal(); });
   checkAuth();
 };
