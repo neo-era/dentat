@@ -89,6 +89,50 @@ const MAX_IMG_LEN = 32767;          // Giới hạn ảnh base64
 - `dentat.html`: network-first, fallback cache khi offline
 - Google Sheet / Apps Script: không cache (luôn lấy mới)
 
+## Biên bản sự cố (kế hoạch tích hợp)
+
+Mục tiêu: xuất **Biên bản về Sự cố, Bất cập trong Công tác Quản lý, Bảo dưỡng Hệ thống Chiếu sáng Đô thị** (chuẩn mẫu CSCC TP.HCM) dạng PDF từ từng hồ sơ đèn.
+
+> **Không cần thêm cột mới vào Sheet** — toàn bộ biên bản tổng hợp từ dữ liệu hiện có + nội dung cố định theo mẫu.
+
+**Ánh xạ dữ liệu → biên bản:**
+- Mã số sự cố = 6 chữ số cuối của `id`
+- Đơn vị báo cáo = hằng số `DON_VI_BAO_CAO` trong `dentat.html`
+- Người kiểm tra = `nguoiPhatHien`
+- Tủ điều khiển = `tenTu` | Đường = `duong` | Phường = `phuong`
+- Ngày giờ = `ngayPhatHien`
+- Hiện trạng = `ghiChu`
+- **Đề xuất** = text mẫu cố định + (nếu có `vatTuSua`) thêm dòng "Vật tư: `<vatTuSua>`"
+- **Mục 7 — Ý kiến giám sát** = cố định theo mẫu (in ra ký tay): ✓Có / □Không; □Xử lý gấp / ✓Bình thường; dòng kẻ trống Ý kiến khác
+- Hình ảnh = `hinhAnh` (split `;`, hiển thị inline)
+- **Trang cuối (trang 4):**
+  - Kết luận = text cố định chuẩn mẫu
+  - Khối chữ ký trái: "TRUNG TÂM QUẢN LÝ HẠ TẦNG KỸ THUẬT TP.HCM / CHUYÊN VIÊN PHỤ TRÁCH ĐỊA BÀN" → tên tra theo `phuong` từ `phuTrachMap`
+  - Khối chữ ký phải: "CÔNG TY CỔ PHẦN CHIẾU SÁNG CÔNG CỘNG TP.HCM / PHỤ TRÁCH KỸ THUẬT THI CÔNG" → tên tra theo `phuong` từ `phuTrachMap`
+  - Fallback khi không tra được: để trống (người dùng điền tay sau khi in)
+  - Vùng chữ ký = dòng kẻ trống để ký tay sau khi in
+
+**Sheet `PhuTrach`** (tab mới, cùng Google Spreadsheet, published CSV):
+| Cột | Nội dung |
+|-----|----------|
+| `Phường/Xã` | tên phường/xã khớp với cột `Phường` trong `DanhSachDen` |
+| `Chuyên viên địa bàn` | tên người ký bên trái biên bản (TTQLHTKT) |
+| `Phụ trách KT thi công` | tên người ký bên phải (CSCC) |
+
+**Trong `dentat.html`:**
+- Hằng số `PHUTRACH_CSV_URL` — published CSV URL của tab `PhuTrach`
+- `let phuTrachMap = {}` — key: `norm(phường)`, value: `{ chuyenVien, phuTrachKT }`
+- `loadPhuTrach()` — đọc CSV lúc khởi động, xây dựng `phuTrachMap`
+- `printBienBan`: tra `phuTrachMap[norm(row.phuong)]`, fallback trống nếu không tìm thấy
+
+**Triển khai (chưa thực hiện):**
+1. Tạo tab `PhuTrach` trong Google Sheet, publish CSV, lấy URL
+2. Thêm `PHUTRACH_CSV_URL` + `phuTrachMap` + `loadPhuTrach()` vào `dentat.html`
+3. Gọi `loadPhuTrach()` song song với `loadData()` lúc khởi động
+4. Thêm nút **📄 Xuất biên bản** vào `#infoSheet`
+5. Viết hàm `printBienBan(idx)`: `window.open()` với HTML A4, CSS `@media print`, tự gọi `window.print()`
+6. Cập nhật `huongdan.html` (v1.8)
+
 ## Quy tắc khi sửa code
 
 - **Không tách file** — toàn bộ frontend nằm trong `dentat.html`, không tạo file JS/CSS riêng
