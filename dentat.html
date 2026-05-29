@@ -233,6 +233,8 @@
     .pc-btn.edit  { background: #f1f5f9; color: var(--text); }
     .pc-btn.fix   { background: var(--green); color: #fff; }
     .pc-btn.doc   { background: #eff6ff; color: #1d4ed8; }
+    .pc-btn.word  { background: #f0fdf4; color: #166534; }
+    .pc-actions.five { grid-template-columns: 1fr 1fr 1fr; }
 
     /* ── INFO BOTTOM SHEET ── */
     #infoSheet { align-items: flex-end; padding: 0; }
@@ -1230,13 +1232,14 @@ function createPopupContent(row, rowIndex) {
   const hasRoute = Number.isFinite(p.lat);
   const hasEdit  = Number.isInteger(rowIndex);
   const hasFix   = broken && hasEdit;
-  const btnCount = (hasRoute ? 1 : 0) + (hasEdit ? 1 : 0) + (hasFix ? 1 : 0) + 1;
-  const gridClass = btnCount >= 4 ? 'four' : btnCount === 3 ? 'three' : btnCount === 2 ? 'two' : 'one';
+  const btnCount = (hasRoute ? 1 : 0) + (hasEdit ? 1 : 0) + (hasFix ? 1 : 0) + 2;
+  const gridClass = btnCount >= 5 ? 'five' : btnCount >= 4 ? 'four' : btnCount === 3 ? 'three' : btnCount === 2 ? 'two' : 'one';
 
   const routeBtn   = hasRoute ? `<button class="pc-btn route" onclick="routeToMarker(${rowIndex})">🧭 Đi đến</button>` : '';
   const editBtn    = hasEdit  ? `<button class="pc-btn edit"  onclick="openEditPopup(${rowIndex})">✏️ Chỉnh sửa</button>` : '';
   const fixBtn     = hasFix   ? `<button class="pc-btn fix"   onclick="quickFix(${rowIndex});closeInfoSheet()">✅ Đã sửa</button>` : '';
-  const bienBanBtn = `<button class="pc-btn doc" onclick="printBienBan(${rowIndex})">📄 Biên bản</button>`;
+  const bienBanBtn = `<button class="pc-btn doc" onclick="printBienBan(${rowIndex})">📄 In/PDF</button>`;
+  const wordBtn    = `<button class="pc-btn word" onclick="downloadBienBanWord(${rowIndex})">📝 Word</button>`;
 
   return `<div class="pc">
     <div class="pc-topbar" style="background:${cfg.color}"></div>
@@ -1251,7 +1254,7 @@ function createPopupContent(row, rowIndex) {
     </div>
     <div class="pc-divider"></div>
     <div class="pc-body">${rows.join('')}<div class="pc-coords">📡 ${coordStr}</div></div>
-    <div class="pc-actions ${gridClass}">${routeBtn}${editBtn}${fixBtn}${bienBanBtn}</div>
+    <div class="pc-actions ${gridClass}">${routeBtn}${editBtn}${fixBtn}${bienBanBtn}${wordBtn}</div>
   </div>`;
 }
 
@@ -1658,55 +1661,45 @@ function closeInfoSheet() {
   document.getElementById('infoSheet').classList.remove('open');
 }
 
-function printBienBan(idx) {
-  if (idx == null || idx < 0 || idx >= loadedData.length) return;
+function buildBienBanContent(idx) {
+  if (idx == null || idx < 0 || idx >= loadedData.length) return null;
   const p = parseRow(loadedData[idx]);
   const ky = phuTrachMap[normalizeKey(p.phuong || '')] || { chuyenVien: '', phuTrachKT: '' };
   const maSuCo = String(p.id || '').slice(-6) || '------';
   const today = new Date();
-  const ngayIn = 'ngay ' + today.getDate() + ' thang ' + (today.getMonth()+1) + ' nam ' + today.getFullYear();
   const ngayInVN = 'ngày ' + today.getDate() + ' tháng ' + (today.getMonth()+1) + ' năm ' + today.getFullYear();
-
   const dotLine = '<div style="border-bottom:1px dotted #555;margin:6px 0;height:18px"></div>';
-  const dotLines = n => Array(n).fill(dotLine).join('');
-
-  const imgUrls = (p.hinhAnh || '').split(';').map(s => s.trim()).filter(Boolean).map(normalizeImagePath);
+  const dl = function(n) { return Array(n).fill(dotLine).join(''); };
+  const imgUrls = (p.hinhAnh || '').split(';').map(function(s){return s.trim();}).filter(Boolean).map(normalizeImagePath).filter(function(u){ return u && !u.startsWith('blob:'); });
   const imgsHtml = imgUrls.length
-    ? imgUrls.map(u => '<img src="' + u + '" style="max-width:45%;max-height:220px;margin:4px;display:inline-block;vertical-align:top;object-fit:contain" onerror="this.style.display=\'none\'">').join('')
+    ? imgUrls.map(function(u){ return '<img src="' + u + '" style="max-width:45%;max-height:220px;margin:4px;display:inline-block;vertical-align:top;object-fit:contain" onerror="this.style.display=\'none\'">'; }).join('')
     : '<em style="color:#777">(Không có ảnh đính kèm)</em>';
-
   const deXuat = 'Đề nghị cho duy tu, sửa chữa để khắc phục sự cố, bất cập trong công tác quản lý, bảo dưỡng hệ thống trên.'
     + (p.vatTuSua ? '<br>Vật tư: ' + p.vatTuSua : '');
-
   const phuTrachKyRight = ky.phuTrachKT || p.nguoiSua || '';
-
-  const css = [
-    '* { box-sizing:border-box; margin:0; padding:0; }',
-    'body { font-family:"Times New Roman",Times,serif; font-size:13pt; color:#000; background:#fff; }',
-    '.page { width:21cm; min-height:29.7cm; margin:0 auto; padding:2cm 2.5cm; }',
-    '.pb { page-break-after:always; }',
-    '.ht { width:100%; border-collapse:collapse; margin-bottom:16px; }',
-    '.ht td { vertical-align:top; text-align:center; width:50%; padding:0 8px; }',
-    '.hl { font-weight:bold; font-size:12pt; line-height:1.6; }',
-    '.hr { font-size:12pt; line-height:1.6; }',
-    '.ul { border-bottom:1.5px solid #000; width:120px; margin:4px auto; }',
-    '.tb { text-align:center; margin:18px 0 14px; }',
-    '.tm { font-size:13.5pt; font-weight:bold; text-transform:uppercase; line-height:1.5; }',
-    '.ms { font-size:12pt; margin-top:8px; }',
-    '.sc { margin:12px 0; line-height:1.8; font-size:12pt; }',
-    '.st { font-weight:bold; }',
-    '.sb { margin-left:16px; }',
-    '.cb { display:inline-block; width:16px; height:16px; border:1.5px solid #000; margin-right:4px; text-align:center; line-height:14px; font-size:11pt; vertical-align:middle; }',
-    '.kb { display:flex; justify-content:space-between; margin-top:40px; }',
-    '.kc { width:46%; text-align:center; font-size:12pt; }',
-    '.kt { font-weight:bold; text-transform:uppercase; line-height:1.5; }',
-    '.ks { height:70px; }',
-    '.kn { font-weight:bold; }',
-    '.kl { font-weight:bold; text-decoration:underline; margin-bottom:10px; }',
-    '@media print { body{margin:0} .page{padding:1.8cm 2.2cm;margin:0;width:100%} }'
-  ].join('\n');
-
-  const pg1 = '<div class="page pb">'
+  const css = '* { box-sizing:border-box; margin:0; padding:0; }'
+    + '\nbody { font-family:"Times New Roman",Times,serif; font-size:13pt; color:#000; background:#fff; }'
+    + '\n.page { width:21cm; min-height:29.7cm; margin:10mm auto; padding:15mm 15mm 15mm 20mm; background:#fff; }'
+    + '\n.pb { page-break-before:always; }'
+    + '\n.ht { width:100%; border-collapse:collapse; margin-bottom:16px; }'
+    + '\n.ht td { vertical-align:top; text-align:center; width:50%; padding:0 6px; font-size:11pt; }'
+    + '\n.hl { font-weight:bold; font-size:11pt; line-height:1.5; }'
+    + '\n.hr { font-size:11pt; line-height:1.5; }'
+    + '\n.ul { border-bottom:1.5px solid #000; width:120px; margin:4px auto; }'
+    + '\n.tb { text-align:center; margin:18px 0 14px; }'
+    + '\n.tm { font-size:13.5pt; font-weight:bold; text-transform:uppercase; line-height:1.5; }'
+    + '\n.ms { font-size:12pt; margin-top:8px; }'
+    + '\n.sc { margin:10px 0; line-height:1.8; font-size:12pt; }'
+    + '\n.st { font-weight:bold; }'
+    + '\n.sb { margin-left:20px; }'
+    + '\n.cb { display:inline-block; width:14px; height:14px; border:1.5px solid #000; margin-right:4px; text-align:center; line-height:12px; font-size:10pt; vertical-align:middle; }'
+    + '\n.kb { display:flex; justify-content:space-between; margin-top:40px; }'
+    + '\n.kc { width:46%; text-align:center; font-size:12pt; }'
+    + '\n.kt { font-weight:bold; text-transform:uppercase; line-height:1.5; font-size:11pt; }'
+    + '\n.ks { height:60px; display:block; }'
+    + '\n.kn { font-weight:bold; }'
+    + '\n.kl { font-weight:bold; text-decoration:underline; margin-bottom:10px; }';
+  const pg1 = '<div class="page">'
     + '<table class="ht"><tr>'
     + '<td class="hl">CÔNG TY CỔ PHẦN<br>CHIẾU SÁNG CÔNG CỘNG TP.HCM<div class="ul"></div></td>'
     + '<td class="hr"><strong>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</strong><br>Độc lập - Tự do - Hạnh phúc<div class="ul"></div><em>Thành phố Hồ Chí Minh, ' + ngayInVN + '</em></td>'
@@ -1719,39 +1712,69 @@ function printBienBan(idx) {
     + '<div class="sb">- Tủ điều khiển: ' + (p.tenTu || '') + '<br>- Đường: ' + (p.duong || '') + '<br>- Phường: ' + (p.phuong || '') + '</div></div>'
     + '<div class="sc"><span class="st">4 - Ngày giờ:</span> ' + (p.ngayPhatHien || '') + '</div>'
     + '<div class="sc"><span class="st">5 - Ghi nhận hiện trạng sự cố, bất cập:</span>'
-    + '<div class="sb">' + (p.ghiChu || '') + '</div>' + dotLines(4) + '</div>'
+    + '<div class="sb">' + (p.ghiChu || '') + '</div>' + dl(4) + '</div>'
     + '<div class="sc"><span class="st">6 - Đề xuất biện pháp khắc phục (quy mô, khối lượng dự kiến thực hiện):</span>'
-    + '<div class="sb">' + deXuat + '</div>' + dotLines(3) + '</div>'
+    + '<div class="sb">' + deXuat + '</div>' + dl(3) + '</div>'
     + '<div class="sc"><span class="st">7 - Ý kiến của cán bộ Giám sát:</span>'
     + '<div class="sb">'
     + '<div>- Cho phép triển khai công việc: <span class="cb">&#10003;</span> Có &nbsp;&nbsp;&nbsp; <span class="cb">&nbsp;</span> Không</div>'
     + '<div style="margin-top:6px">- Yêu cầu tiến độ thực hiện: <span class="cb">&nbsp;</span> Xử lý gấp &nbsp;&nbsp;&nbsp; <span class="cb">&#10003;</span> Bình thường</div>'
-    + '<div style="margin-top:6px">- Ý kiến khác:</div>' + dotLines(2)
+    + '<div style="margin-top:6px">- Ý kiến khác:</div>' + dl(2)
     + '</div></div>'
     + '<div class="sc"><span class="st">8 - Hình ảnh sự cố, bất cập đính kèm:</span>'
     + '<div style="margin-top:8px">' + imgsHtml + '</div></div>'
     + '</div>';
-
-  const pg2 = '<div class="page">'
+  const pg2 = '<div class="page pb">'
     + '<div class="kl">* Kết luận:</div>'
     + '<p style="font-size:12pt;line-height:1.8;text-align:justify">Các bên cùng thống nhất với các nội dung trên. Yêu cầu Nhà thầu nhanh chóng triển khai duy tu, sửa chữa để khắc phục sự cố, bất cập trong công tác quản lý, bảo dưỡng hệ thống chiếu sáng đô thị theo đúng tiến độ được quy định./.</p>'
     + '<div class="kb">'
-    + '<div class="kc"><div class="kt">TRUNG TÂM QUẢN LÝ HẠ TẦNG KỸ THUẬT TP.HCM<br>CHUYÊN VIÊN PHỤ TRÁCH ĐỊA BÀN</div><div class="ks"></div><div class="kn">' + ky.chuyenVien + '</div></div>'
-    + '<div class="kc"><div class="kt">CÔNG TY CỔ PHẦN CHIẾU SÁNG CÔNG CỘNG TP.HCM<br>PHỤ TRÁCH KỸ THUẬT THI CÔNG</div><div class="ks"></div><div class="kn">' + phuTrachKyRight + '</div></div>'
+    + '<div class="kc"><div class="kt">TRUNG TÂM QUẢN LÝ GIAO THÔNG VÀ HẠ TẦNG KỸ THUẬT TP.HCM<br>Chuyên viên phụ trách địa bàn</div><span class="ks"></span><div class="kn">' + ky.chuyenVien + '</div></div>'
+    + '<div class="kc"><div class="kt">CÔNG TY CỔ PHẦN CHIẾU SÁNG CÔNG CỘNG TP.HCM<br>Phụ trách kỹ thuật thi công</div><span class="ks"></span><div class="kn">' + phuTrachKyRight + '</div></div>'
     + '</div></div>';
+  return { maSuCo, css, pg1, pg2 };
+}
 
+function printBienBan(idx) {
+  const b = buildBienBanContent(idx);
+  if (!b) return;
+  const printCss = '\n@page { size:A4; margin:15mm 15mm 15mm 20mm; }'
+    + '\n@media print { body{margin:0;background:#fff} .page{width:100%;margin:0;padding:0;min-height:unset;box-shadow:none} }';
   const printScript = '<script>window.onload=function(){window.print();}<\/script>';
-  const html = '<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><title>Bien ban su co ' + maSuCo + '</title><style>' + css + '</style></head><body>' + pg1 + pg2 + printScript + '</body></html>';
-
+  const html = '<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><title>Bien ban su co ' + b.maSuCo + '</title><style>' + b.css + printCss + '</style></head><body>' + b.pg1 + b.pg2 + printScript + '</body></html>';
   try {
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const w = window.open(url, '_blank');
     if (!w) { showToast('Trình duyệt chặn popup — vui lòng cho phép popup cho trang này'); return; }
-    setTimeout(function() { URL.revokeObjectURL(url); }, 30000);
-  } catch(e) {
-    showToast('Lỗi xuất biên bản: ' + e.message);
-  }
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 30000);
+  } catch(e) { showToast('Lỗi xuất biên bản: ' + e.message); }
+}
+
+function downloadBienBanWord(idx) {
+  const b = buildBienBanContent(idx);
+  if (!b) return;
+  const wordCss = '\n@page Section1 { size:21cm 29.7cm; margin:15mm 15mm 15mm 20mm; mso-header-margin:10mm; mso-footer-margin:10mm; }'
+    + '\ndiv.Section1 { page:Section1; }'
+    + '\n.kb { display:table; width:100%; margin-top:40px; border-collapse:separate; }'
+    + '\n.kc { display:table-cell; width:46%; text-align:center; vertical-align:top; padding:0 2%; }'
+    + '\n.ks { display:block; height:60px; }'
+    + '\n.page { width:100%; margin:0; padding:0; }';
+  const html = '<!DOCTYPE html>'
+    + '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'
+    + '<head><meta charset="utf-8"><title>Bien ban su co ' + b.maSuCo + '</title>'
+    + '<style>' + b.css + wordCss + '</style></head>'
+    + '<body><div class="Section1">' + b.pg1 + b.pg2 + '</div></body></html>';
+  try {
+    const blob = new Blob(['﻿' + html], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'bien-ban-' + b.maSuCo + '.doc';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 10000);
+  } catch(e) { showToast('Lỗi xuất Word: ' + e.message); }
 }
 
 async function deleteMarkerPopup() {
