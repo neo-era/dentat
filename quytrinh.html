@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Quy trình Phối hợp Báo cáo & Xử lý Sự cố — CSCC TP.HCM</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #0f172a; --navy2: #1e293b;
+      --orange: #f97316; --orange-light: #fff7ed;
+      --green: #10b981; --green-light: #d1fae5;
+      --red: #ef4444; --red-light: #fee2e2;
+      --sky: #0ea5e9; --sky-light: #e0f2fe;
+      --purple: #7c3aed; --purple-light: #ede9fe;
+      --amber: #f59e0b; --amber-light: #fef3c7;
+      --cscc: #1d4ed8; --cscc-light: #eff6ff;
+      --tt: #059669; --tt-light: #d1fae5;
+      --text: #1e293b; --text-muted: #64748b; --border: #e2e8f0; --bg: #f8fafc;
+    }
+    html, body { font-family: 'Inter', system-ui, sans-serif; color: var(--text); background: var(--bg); }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(15,23,42,.97); backdrop-filter: blur(14px);
+      padding: 12px 20px; display: flex; align-items: center; gap: 14px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .topbar-back { color: rgba(255,255,255,.7); text-decoration: none; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: color .2s; }
+    .topbar-back:hover { color: var(--orange); }
+    .topbar-title { font-size: 15px; font-weight: 800; flex: 1; background: linear-gradient(135deg, #fbbf24, #f97316); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .topbar-ver { font-size: 11px; color: rgba(255,255,255,.4); }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f2c1a 100%);
+      padding: 40px 20px 48px; text-align: center; color: #fff;
+    }
+    .hero-icon { font-size: 52px; margin-bottom: 14px; }
+    .hero-title { font-size: 22px; font-weight: 800; margin-bottom: 6px; line-height: 1.3; background: linear-gradient(135deg,#fbbf24,#f97316); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .hero-sub { font-size: 13px; color: rgba(255,255,255,.6); max-width: 560px; margin: 0 auto 20px; line-height: 1.7; }
+    .hero-badges { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .hero-badge { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15); color: rgba(255,255,255,.85); padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+
+    /* ── LAYOUT ── */
+    .wrap { max-width: 860px; margin: 0 auto; padding: 28px 20px 60px; display: flex; flex-direction: column; gap: 24px; }
+
+    /* ── CARD ── */
+    .card { background: #fff; border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
+    .card-header { padding: 16px 20px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+    .card-icon { font-size: 22px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--navy); }
+    .card-body { padding: 18px 20px; }
+
+    /* ── PARTIES ── */
+    .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .party { border-radius: 12px; padding: 16px; border: 2px solid transparent; }
+    .party.cscc { background: var(--cscc-light); border-color: #bfdbfe; }
+    .party.tt { background: var(--tt-light); border-color: #a7f3d0; }
+    .party-logo { font-size: 28px; margin-bottom: 8px; }
+    .party-name { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; line-height: 1.4; margin-bottom: 4px; }
+    .party.cscc .party-name { color: var(--cscc); }
+    .party.tt .party-name { color: var(--tt); }
+    .party-role { font-size: 12px; color: var(--text-muted); font-weight: 500; line-height: 1.5; }
+    .party-tag { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; margin-top: 8px; }
+    .party.cscc .party-tag { background: var(--cscc); color: #fff; }
+    .party.tt .party-tag { background: var(--tt); color: #fff; }
+
+    /* ── SWIMLANE ── */
+    .swimlane { display: grid; grid-template-columns: 1fr 48px 1fr; gap: 0; }
+    .lane-header { text-align: center; padding: 10px 14px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; border-radius: 10px 10px 0 0; }
+    .lane-header.cscc { background: var(--cscc); color: #fff; }
+    .lane-header.tt { background: var(--tt); color: #fff; }
+    .lane-header.mid { background: transparent; }
+    .lane-body { border: 2px solid var(--border); border-top: none; border-radius: 0 0 10px 10px; padding: 12px; display: flex; flex-direction: column; gap: 0; }
+    .lane-mid { display: flex; flex-direction: column; align-items: center; padding-top: 0; }
+
+    /* ── FLOW STEPS ── */
+    .flow-row { display: grid; grid-template-columns: 1fr 48px 1fr; align-items: center; gap: 0; margin-bottom: 0; }
+    .flow-step {
+      border-radius: 10px; padding: 12px 14px; margin: 6px 4px;
+      border: 1.5px solid transparent; position: relative;
+    }
+    .flow-step.cscc { background: var(--cscc-light); border-color: #bfdbfe; }
+    .flow-step.tt { background: var(--tt-light); border-color: #a7f3d0; }
+    .flow-step.both { background: var(--amber-light); border-color: #fcd34d; }
+    .flow-step.empty { background: transparent; border-color: transparent; }
+    .flow-step-num { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+    .flow-step.cscc .flow-step-num { color: var(--cscc); }
+    .flow-step.tt .flow-step-num { color: var(--tt); }
+    .flow-step.both .flow-step-num { color: #92400e; }
+    .flow-step-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 3px; line-height: 1.4; }
+    .flow-step-desc { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+    .flow-docs { margin-top: 6px; }
+    .flow-doc { display: inline-block; font-size: 10px; font-weight: 600; background: rgba(0,0,0,.07); border-radius: 4px; padding: 1px 7px; margin: 2px 2px 0 0; }
+
+    /* ── CONNECTOR ── */
+    .conn { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
+    .conn-line { flex: 1; width: 2px; background: var(--border); min-height: 12px; }
+    .conn-arrow { font-size: 16px; color: var(--text-muted); line-height: 1; }
+    .conn-label { font-size: 10px; color: var(--text-muted); text-align: center; font-weight: 600; writing-mode: vertical-rl; transform: rotate(180deg); padding: 4px 0; letter-spacing: .05em; }
+    .conn-h { display: flex; align-items: center; justify-content: center; padding: 4px 0; }
+    .conn-h-line { flex: 1; height: 2px; background: #fcd34d; }
+    .conn-h-arrow { font-size: 14px; color: #92400e; }
+
+    /* ── TIMELINE TABLE ── */
+    .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .tbl th { background: var(--bg); font-weight: 700; color: var(--text-muted); text-align: left; padding: 9px 12px; border-bottom: 1.5px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    .tbl td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: top; line-height: 1.5; }
+    .tbl tr:last-child td { border-bottom: none; }
+    .badge { display: inline-block; border-radius: 6px; padding: 2px 9px; font-size: 11px; font-weight: 700; }
+    .badge.red { background: var(--red-light); color: #991b1b; }
+    .badge.orange { background: var(--orange-light); color: #9a3412; }
+    .badge.green { background: var(--green-light); color: #065f46; }
+    .badge.purple { background: var(--purple-light); color: #5b21b6; }
+
+    /* ── DOCS LIST ── */
+    .doc-grid { display: flex; flex-direction: column; gap: 10px; }
+    .doc-item { display: flex; gap: 14px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); }
+    .doc-num { width: 26px; height: 26px; border-radius: 50%; background: var(--navy); color: #fff; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .doc-body { flex: 1; }
+    .doc-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+    .doc-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+    .doc-tags { margin-top: 5px; display: flex; gap: 5px; flex-wrap: wrap; }
+    .doc-tag { font-size: 10px; font-weight: 700; padding: 1px 8px; border-radius: 4px; }
+    .doc-tag.cscc { background: var(--cscc-light); color: var(--cscc); }
+    .doc-tag.tt { background: var(--tt-light); color: var(--tt); }
+    .doc-tag.both { background: var(--amber-light); color: #92400e; }
+
+    /* ── TIP ── */
+    .tip { display: flex; gap: 12px; padding: 12px 14px; border-radius: 10px; align-items: flex-start; margin-bottom: 10px; }
+    .tip:last-child { margin-bottom: 0; }
+    .tip-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .tip-body { flex: 1; }
+    .tip-title { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+    .tip-desc { font-size: 13px; line-height: 1.6; color: var(--text-muted); }
+    .tip.info { background: var(--sky-light); }
+    .tip.info .tip-title { color: #0369a1; }
+    .tip.warn { background: var(--amber-light); }
+    .tip.warn .tip-title { color: #92400e; }
+    .tip.ok { background: var(--green-light); }
+    .tip.ok .tip-title { color: #065f46; }
+    .tip.err { background: var(--red-light); }
+    .tip.err .tip-title { color: #991b1b; }
+
+    /* ── LEGAL BASIS ── */
+    .legal-list { display: flex; flex-direction: column; gap: 8px; }
+    .legal-item { display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; border-radius: 8px; background: var(--bg); border-left: 4px solid var(--navy); }
+    .legal-item-body { flex: 1; }
+    .legal-item-title { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 2px; }
+    .legal-item-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+    /* ── FOOTER ── */
+    .footer { text-align: center; padding: 28px 20px; font-size: 12px; color: var(--text-muted); }
+    .footer a { color: var(--orange); text-decoration: none; }
+
+    @media (max-width: 600px) {
+      .parties { grid-template-columns: 1fr; }
+      .flow-row { grid-template-columns: 1fr 32px 1fr; }
+      .hero-title { font-size: 18px; }
+      .tbl { font-size: 12px; }
+      .tbl th, .tbl td { padding: 7px 9px; }
+    }
+    @media print {
+      .topbar { display: none; }
+      .wrap { padding: 0 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="topbar">
+  <a href="dentat.html" class="topbar-back">← Mở app</a>
+  <span class="topbar-title">⚖️ Quy trình Phối hợp Báo cáo & Xử lý Sự cố</span>
+  <span class="topbar-ver">v1.0</span>
+</nav>
+
+<div class="hero">
+  <div class="hero-icon">⚖️</div>
+  <div class="hero-title">Quy trình Phối hợp Báo cáo<br>& Xử lý Sự cố Chiếu sáng</div>
+  <div class="hero-sub">Quy trình phối hợp giữa Công ty Cổ phần Chiếu sáng Công cộng TP.HCM (đơn vị quản lý vận hành) và Trung tâm Quản lý Hạ tầng Kỹ thuật TP.HCM (đơn vị giao quản lý) nhằm đảm bảo tính pháp lý trong việc tiếp nhận, xử lý và lưu hồ sơ sự cố chiếu sáng đô thị.</div>
+  <div class="hero-badges">
+    <span class="hero-badge">📋 6 bước quy trình</span>
+    <span class="hero-badge">📄 Biên bản theo mẫu chuẩn</span>
+    <span class="hero-badge">✅ Đảm bảo tính pháp lý</span>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- CÁC BÊN LIÊN QUAN -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-icon">🏢</span>
+      <span class="card-title">Các bên tham gia</span>
+    </div>
+    <div class="card-body">
+      <div class="parties">
+        <div class="party cscc">
+          <div class="party-logo">🏗️</div>
+          <div class="party-name">Công ty CP Chiếu sáng Công cộng TP.HCM</div>
+          <div class="party-role">Đơn vị quản lý, vận hành và bảo dưỡng hệ thống chiếu sáng đô thị theo hợp đồng được giao. Trực tiếp tiếp nhận, khảo sát và thi công khắc phục sự cố.</div>
+          <span class="party-tag">Đơn vị quản lý vận hành</span>
+        </div>
+        <div class="party tt">
+          <div class="party-logo">🏛️</div>
+          <div class="party-name">Trung tâm Quản lý Hạ tầng Kỹ thuật TP.HCM</div>
+          <div class="party-role">Đơn vị giao quản lý, giám sát thực hiện hợp đồng. Xác nhận sự cố, phê duyệt triển khai, nghiệm thu kết quả xử lý và lưu trữ hồ sơ pháp lý.</div>
+          <span class="party-tag">Đơn vị giao quản lý</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CƠ SỞ PHÁP LÝ -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-icon">📜</span>
+      <span class="card-title">Cơ sở pháp lý</span>
+    </div>
+    <div class="card-body">
+      <div class="legal-list">
+        <div class="legal-item">
+          <div class="legal-item-body">
+            <div class="legal-item-title">Hợp đồng quản lý, vận hành hệ thống chiếu sáng đô thị</div>
+            <div class="legal-item-desc">Hợp đồng ký giữa TTQLHTKT và CSCC quy định phạm vi công việc, quy trình báo cáo, thời hạn xử lý và trách nhiệm của từng bên.</div>
+          </div>
+        </div>
+        <div class="legal-item">
+          <div class="legal-item-body">
+            <div class="legal-item-title">Quy trình quản lý, bảo dưỡng hệ thống chiếu sáng đô thị TP.HCM</div>
+            <div class="legal-item-desc">Quy định cụ thể quy trình tiếp nhận sự cố, lập biên bản, thi công và nghiệm thu; làm cơ sở đối chiếu khi phát sinh tranh chấp.</div>
+          </div>
+        </div>
+        <div class="legal-item">
+          <div class="legal-item-body">
+            <div class="legal-item-title">Mẫu Biên bản Sự cố, Bất cập — Chiếu sáng Đô thị TP.HCM</div>
+            <div class="legal-item-desc">Mẫu biên bản chuẩn do TTQLHTKT ban hành. Biên bản có chữ ký của cả hai bên là tài liệu pháp lý xác nhận sự cố và cho phép triển khai sửa chữa.</div>
+          </div>
+        </div>
+        <div class="legal-item">
+          <div class="legal-item-body">
+            <div class="legal-item-title">Hệ thống quản lý đèn tắt CSCC (phần mềm nội bộ)</div>
+            <div class="legal-item-desc">Dữ liệu trên hệ thống (vị trí GPS, ảnh hiện trường, ngày phát hiện, ngày sửa) là cơ sở số hóa để đối chiếu với hồ sơ giấy và phục vụ báo cáo định kỳ.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SƠ ĐỒ QUY TRÌNH (SWIMLANE) -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-icon">🔄</span>
+      <span class="card-title">Sơ đồ quy trình phối hợp</span>
+    </div>
+    <div class="card-body" style="overflow-x:auto">
+      <div style="min-width:480px">
+
+        <!-- Header -->
+        <div style="display:grid;grid-template-columns:1fr 48px 1fr;margin-bottom:0">
+          <div class="lane-header cscc">🏗️ CSCC — Quản lý vận hành</div>
+          <div class="lane-header mid"></div>
+          <div class="lane-header tt">🏛️ TTQLHTKT — Giao quản lý</div>
+        </div>
+
+        <!-- BƯỚC 1 -->
+        <div class="flow-row">
+          <div class="flow-step cscc">
+            <div class="flow-step-num">Bước 1</div>
+            <div class="flow-step-title">Phát hiện & Ghi nhận sự cố</div>
+            <div class="flow-step-desc">Nhân viên khảo sát phát hiện đèn hư hoặc tiếp nhận phản ánh từ người dân. Ghi nhận ngay vào hệ thống: số trụ, tọa độ GPS, ảnh hiện trường, mô tả sự cố.</div>
+            <div class="flow-docs">
+              <span class="flow-doc">📱 Hệ thống dentat</span>
+              <span class="flow-doc">📷 Ảnh hiện trường</span>
+            </div>
+          </div>
+          <div class="conn"><div class="conn-line"></div></div>
+          <div class="flow-step empty"></div>
+        </div>
+
+        <!-- BƯỚC 2 — song song -->
+        <div class="flow-row">
+          <div class="flow-step cscc">
+            <div class="flow-step-num">Bước 2a</div>
+            <div class="flow-step-title">Xuất Biên bản Sự cố</div>
+            <div class="flow-step-desc">Xuất biên bản từ hệ thống, in 2 bản. Điền đầy đủ mục 1–8 theo mẫu chuẩn. Chuyển cho Chuyên viên TTQLHTKT địa bàn ký xác nhận.</div>
+            <div class="flow-docs">
+              <span class="flow-doc">📄 Biên bản 2 bản</span>
+            </div>
+          </div>
+          <div class="conn">
+            <div class="conn-line"></div>
+            <div class="conn-h">
+              <div class="conn-h-line"></div>
+              <div class="conn-h-arrow">↔</div>
+              <div class="conn-h-line"></div>
+            </div>
+            <div class="conn-line"></div>
+          </div>
+          <div class="flow-step tt">
+            <div class="flow-step-num">Bước 2b</div>
+            <div class="flow-step-title">Kiểm tra & Ký xác nhận</div>
+            <div class="flow-step-desc">Chuyên viên địa bàn kiểm tra thực tế (nếu cần), xác nhận nội dung biên bản, ký tên mục 7. Điền ý kiến giám sát và phân loại tiến độ.</div>
+            <div class="flow-docs">
+              <span class="flow-doc">✍️ Chữ ký xác nhận</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- BƯỚC 3 -->
+        <div class="flow-row">
+          <div class="flow-step empty"></div>
+          <div class="conn"><div class="conn-line"></div></div>
+          <div class="flow-step tt">
+            <div class="flow-step-num">Bước 3</div>
+            <div class="flow-step-title">Phê duyệt triển khai</div>
+            <div class="flow-step-desc">Đánh dấu "Cho phép triển khai" trong biên bản. Xác định tiến độ: <strong>Xử lý gấp</strong> (≤24h, ảnh hưởng ATGT) hoặc <strong>Bình thường</strong> (≤3 ngày làm việc). Giao lại 1 bản cho CSCC.</div>
+            <div class="flow-docs">
+              <span class="flow-doc">📋 Biên bản đã duyệt</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- BƯỚC 4 -->
+        <div class="flow-row">
+          <div class="flow-step cscc">
+            <div class="flow-step-num">Bước 4</div>
+            <div class="flow-step-title">Thi công khắc phục</div>
+            <div class="flow-step-desc">Triển khai sửa chữa theo đúng nội dung biên bản đã được phê duyệt. Ghi nhận vật tư sử dụng, chụp ảnh sau sửa chữa, cập nhật trạng thái trên hệ thống.</div>
+            <div class="flow-docs">
+              <span class="flow-doc">🔧 Thi công</span>
+              <span class="flow-doc">📷 Ảnh sau sửa</span>
+              <span class="flow-doc">📱 Cập nhật hệ thống</span>
+            </div>
+          </div>
+          <div class="conn"><div class="conn-line"></div></div>
+          <div class="flow-step empty"></div>
+        </div>
+
+        <!-- BƯỚC 5 — cùng nhau -->
+        <div class="flow-row">
+          <div class="flow-step both">
+            <div class="flow-step-num">Bước 5a</div>
+            <div class="flow-step-title">Cập nhật & Báo cáo kết quả</div>
+            <div class="flow-step-desc">Cập nhật trạng thái "Đã khắc phục" trên hệ thống. Ghi Ngày sửa, Người sửa, Vật tư. Thông báo kết quả cho TTQLHTKT.</div>
+            <div class="flow-docs">
+              <span class="flow-doc">✅ Quick Fix</span>
+              <span class="flow-doc">📊 Báo cáo kết quả</span>
+            </div>
+          </div>
+          <div class="conn">
+            <div class="conn-line"></div>
+            <div class="conn-h">
+              <div class="conn-h-line"></div>
+              <div class="conn-h-arrow">↔</div>
+              <div class="conn-h-line"></div>
+            </div>
+            <div class="conn-line"></div>
+          </div>
+          <div class="flow-step both">
+            <div class="flow-step-num">Bước 5b</div>
+            <div class="flow-step-title">Xác nhận nghiệm thu</div>
+            <div class="flow-step-desc">Chuyên viên địa bàn kiểm tra kết quả thực tế, đối chiếu với biên bản. Xác nhận hoàn thành và ghi nhận vào hồ sơ quản lý.</div>
+            <div class="flow-docs">
+              <span class="flow-doc">✍️ Xác nhận nghiệm thu</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- BƯỚC 6 -->
+        <div class="flow-row">
+          <div class="flow-step cscc">
+            <div class="flow-step-num">Bước 6a</div>
+            <div class="flow-step-title">Lưu hồ sơ nội bộ</div>
+            <div class="flow-step-desc">Lưu biên bản đã ký (bản giấy) vào hồ sơ công trình. Dữ liệu số trên hệ thống là cơ sở đối chiếu khi cần thiết.</div>
+            <div class="flow-docs">
+              <span class="flow-doc">📁 Hồ sơ công trình</span>
+            </div>
+          </div>
+          <div class="conn"><div class="conn-line"></div></div>
+          <div class="flow-step tt">
+            <div class="flow-step-num">Bước 6b</div>
+            <div class="flow-step-title">Lưu hồ sơ quản lý</div>
+            <div class="flow-step-desc">Lưu biên bản đã ký (bản giấy) vào hồ sơ quản lý. Dùng làm cơ sở thanh quyết toán hợp đồng và kiểm tra định kỳ.</div>
+            <div class="flow-docs">
+              <span class="flow-doc">📁 Hồ sơ thanh toán</span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end min-width -->
+    </div>
+  </div>
+
+  <!-- THỜI HẠN XỬ LÝ -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-icon">⏱️</span>
+      <span class="card-title">Thời hạn xử lý</span>
+    </div>
+    <div class="card-body">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Loại sự cố</th>
+            <th>Ghi nhận hệ thống</th>
+            <th>Lập biên bản</th>
+            <th>Thi công xử lý</th>
+            <th>Cập nhật kết quả</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge red">🚨 Ảnh hưởng ATGT</span><br><span style="font-size:11px;color:var(--text-muted)">Đèn nút giao, tuyến chính tắt</span></td>
+            <td>Ngay khi phát hiện</td>
+            <td>Trong ngày phát hiện</td>
+            <td><strong style="color:#dc2626">≤ 24 giờ</strong></td>
+            <td>Ngay sau khi xong</td>
+          </tr>
+          <tr>
+            <td><span class="badge orange">⚡ Sự cố thông thường</span><br><span style="font-size:11px;color:var(--text-muted)">Đèn hư đơn lẻ, tuyến phụ</span></td>
+            <td>Trong ngày phát hiện</td>
+            <td>Trong 24h</td>
+            <td><strong style="color:#ea580c">≤ 3 ngày làm việc</strong></td>
+            <td>Ngay sau khi xong</td>
+          </tr>
+          <tr>
+            <td><span class="badge purple">🔧 Hư hỏng kéo dài</span><br><span style="font-size:11px;color:var(--text-muted)">Chưa sửa được &gt; 10 ngày</span></td>
+            <td>Đã có — hệ thống tự đánh mã 5</td>
+            <td>Đã có biên bản ban đầu</td>
+            <td>Báo cáo nguyên nhân + kế hoạch xử lý lên TTQLHTKT</td>
+            <td>Sau khi giải quyết được</td>
+          </tr>
+          <tr>
+            <td><span class="badge green">✅ Đèn bình thường</span><br><span style="font-size:11px;color:var(--text-muted)">Sau khi sửa xong</span></td>
+            <td colspan="4" style="color:var(--text-muted);font-size:12px">Cập nhật trạng thái ngay sau khi kiểm tra đèn đã sáng bình thường. Hệ thống ghi tự động Ngày sửa và Người sửa.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- HỒ SƠ BẮT BUỘC -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-icon">📁</span>
+      <span class="card-title">Hồ sơ pháp lý bắt buộc cho mỗi sự cố</span>
+    </div>
+    <div class="card-body">
+      <div class="doc-grid">
+        <div class="doc-item">
+          <div class="doc-num">1</div>
+          <div class="doc-body">
+            <div class="doc-title">Biên bản về Sự cố, Bất cập trong Công tác Quản lý, Bảo dưỡng HTCSĐT</div>
+            <div class="doc-desc">Mẫu biên bản chuẩn, đầy đủ 8 mục, có chữ ký của Chuyên viên địa bàn TTQLHTKT và Phụ trách KT thi công CSCC. Xuất từ hệ thống (PDF/Word) hoặc điền tay theo mẫu in sẵn.</div>
+            <div class="doc-tags">
+              <span class="doc-tag both">⚖️ Bắt buộc — cả hai bên ký</span>
+              <span class="doc-tag">📄 2 bản gốc</span>
+            </div>
+          </div>
+        </div>
+        <div class="doc-item">
+          <div class="doc-num">2</div>
+          <div class="doc-body">
+            <div class="doc-title">Ảnh hiện trường (trước & sau khi sửa)</div>
+            <div class="doc-desc">Tối thiểu 1 ảnh hiện trạng sự cố trước khi sửa. Khuyến nghị có thêm ảnh sau khi đèn đã hoạt động bình thường. Ảnh lưu trên hệ thống và đính kèm biên bản.</div>
+            <div class="doc-tags">
+              <span class="doc-tag cscc">🏗️ CSCC cung cấp</span>
+              <span class="doc-tag">📷 File JPG có metadata</span>
+            </div>
+          </div>
+        </div>
+        <div class="doc-item">
+          <div class="doc-num">3</div>
+          <div class="doc-body">
+            <div class="doc-title">Hồ sơ trên hệ thống quản lý đèn tắt</div>
+            <div class="doc-desc">Dữ liệu số: ID hồ sơ (13 chữ số timestamp), tọa độ GPS, số trụ, ngày phát hiện, ngày sửa, người phát hiện, người sửa, vật tư sử dụng. Là cơ sở đối chiếu với hồ sơ giấy.</div>
+            <div class="doc-tags">
+              <span class="doc-tag cscc">🏗️ CSCC nhập liệu</span>
+              <span class="doc-tag tt">🏛️ TTQLHTKT tra cứu</span>
+            </div>
+          </div>
+        </div>
+        <div class="doc-item">
+          <div class="doc-num">4</div>
+          <div class="doc-body">
+            <div class="doc-title">Báo cáo định kỳ (hàng tuần / hàng tháng)</div>
+            <div class="doc-desc">Xuất từ hệ thống theo khoảng thời gian, lọc theo phường/ngày/người. File Excel gồm: danh sách đèn hư, số ngày chưa sửa, vật tư đã dùng — phục vụ thanh quyết toán và báo cáo cấp trên.</div>
+            <div class="doc-tags">
+              <span class="doc-tag cscc">🏗️ CSCC xuất</span>
+              <span class="doc-tag tt">🏛️ TTQLHTKT xem xét</span>
+              <span class="doc-tag">📊 File .xlsx</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRÁCH NHIỆM -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-icon">👤</span>
+      <span class="card-title">Bảng phân công trách nhiệm</span>
+    </div>
+    <div class="card-body">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Công việc</th>
+            <th style="text-align:center">CSCC</th>
+            <th style="text-align:center">TTQLHTKT</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Tuần tra, phát hiện sự cố</td>
+            <td style="text-align:center;color:#1d4ed8;font-weight:700">✦ Chính</td>
+            <td style="text-align:center;color:#64748b">— Không</td>
+          </tr>
+          <tr>
+            <td>Tiếp nhận phản ánh từ người dân</td>
+            <td style="text-align:center;color:#1d4ed8;font-weight:700">✦ Chính</td>
+            <td style="text-align:center;color:#059669;font-weight:600">◆ Hỗ trợ</td>
+          </tr>
+          <tr>
+            <td>Nhập liệu hồ sơ vào hệ thống</td>
+            <td style="text-align:center;color:#1d4ed8;font-weight:700">✦ Chính</td>
+            <td style="text-align:center;color:#64748b">— Không</td>
+          </tr>
+          <tr>
+            <td>Lập Biên bản Sự cố</td>
+            <td style="text-align:center;color:#1d4ed8;font-weight:700">✦ Chính</td>
+            <td style="text-align:center;color:#059669;font-weight:600">◆ Ký xác nhận</td>
+          </tr>
+          <tr>
+            <td>Phê duyệt triển khai thi công</td>
+            <td style="text-align:center;color:#64748b">— Không</td>
+            <td style="text-align:center;color:#059669;font-weight:700">✦ Chính</td>
+          </tr>
+          <tr>
+            <td>Thi công sửa chữa, khắc phục</td>
+            <td style="text-align:center;color:#1d4ed8;font-weight:700">✦ Chính</td>
+            <td style="text-align:center;color:#64748b">— Không</td>
+          </tr>
+          <tr>
+            <td>Giám sát thi công (khi cần)</td>
+            <td style="text-align:center;color:#64748b">— Không</td>
+            <td style="text-align:center;color:#059669;font-weight:700">✦ Chính</td>
+          </tr>
+          <tr>
+            <td>Cập nhật trạng thái sau sửa chữa</td>
+            <td style="text-align:center;color:#1d4ed8;font-weight:700">✦ Chính</td>
+            <td style="text-align:center;color:#64748b">— Không</td>
+          </tr>
+          <tr>
+            <td>Nghiệm thu kết quả xử lý</td>
+            <td style="text-align:center;color:#1d4ed8;font-weight:600">◆ Hỗ trợ</td>
+            <td style="text-align:center;color:#059669;font-weight:700">✦ Chính</td>
+          </tr>
+          <tr>
+            <td>Xuất báo cáo định kỳ</td>
+            <td style="text-align:center;color:#1d4ed8;font-weight:700">✦ Chính</td>
+            <td style="text-align:center;color:#059669;font-weight:600">◆ Xem xét</td>
+          </tr>
+          <tr>
+            <td>Lưu hồ sơ pháp lý biên bản</td>
+            <td style="text-align:center;color:#1d4ed8;font-weight:700">✦ 1 bản gốc</td>
+            <td style="text-align:center;color:#059669;font-weight:700">✦ 1 bản gốc</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin-top:10px;font-size:12px;color:var(--text-muted)">
+        <strong>✦ Chính</strong>: chịu trách nhiệm chính &nbsp;|&nbsp; <strong>◆ Hỗ trợ/Phối hợp</strong>: tham gia hỗ trợ khi cần &nbsp;|&nbsp; <strong>—</strong>: không tham gia
+      </div>
+    </div>
+  </div>
+
+  <!-- LƯU Ý PHÁP LÝ -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-icon">⚠️</span>
+      <span class="card-title">Lưu ý để đảm bảo tính pháp lý</span>
+    </div>
+    <div class="card-body">
+      <div class="tip err">
+        <span class="tip-icon">🚫</span>
+        <div class="tip-body">
+          <div class="tip-title">Không thi công khi chưa có biên bản được ký duyệt</div>
+          <div class="tip-desc">Mọi công việc sửa chữa phải có biên bản sự cố được Chuyên viên địa bàn TTQLHTKT ký xác nhận và ghi "Cho phép triển khai". Thi công trước khi có phê duyệt là vi phạm quy trình và mất cơ sở thanh toán.</div>
+        </div>
+      </div>
+      <div class="tip warn" style="margin-top:10px">
+        <span class="tip-icon">⏰</span>
+        <div class="tip-body">
+          <div class="tip-title">Ghi nhận ngay trong ngày phát hiện</div>
+          <div class="tip-desc">Ngày phát hiện trong hệ thống và trên biên bản phải khớp nhau. Nhập liệu trễ ngày làm mất tính trung thực của hồ sơ và ảnh hưởng đến việc tính số ngày chưa xử lý (làm cơ sở đánh giá KPI).</div>
+        </div>
+      </div>
+      <div class="tip warn" style="margin-top:10px">
+        <span class="tip-icon">📸</span>
+        <div class="tip-body">
+          <div class="tip-title">Ảnh phải chụp tại hiện trường, đúng lúc sự cố</div>
+          <div class="tip-desc">Ảnh hiện trường là bằng chứng pháp lý. Không dùng ảnh cũ hoặc ảnh không liên quan. Ảnh trên hệ thống được lưu kèm tên file có timestamp, có thể đối chiếu khi cần kiểm tra.</div>
+        </div>
+      </div>
+      <div class="tip info" style="margin-top:10px">
+        <span class="tip-icon">🔢</span>
+        <div class="tip-body">
+          <div class="tip-title">Mã số sự cố = 6 chữ số cuối ID hồ sơ</div>
+          <div class="tip-desc">Mỗi hồ sơ trên hệ thống có ID timestamp 13 chữ số duy nhất. Biên bản in ra hiển thị 6 chữ số cuối làm Mã số sự cố. Dùng mã này để tra cứu chéo giữa hồ sơ giấy và hệ thống số.</div>
+        </div>
+      </div>
+      <div class="tip ok" style="margin-top:10px">
+        <span class="tip-icon">✅</span>
+        <div class="tip-body">
+          <div class="tip-title">Biên bản 2 bản gốc — mỗi bên giữ 1 bản</div>
+          <div class="tip-desc">In 2 bản biên bản, cả hai bên cùng ký vào cả 2 bản. CSCC giữ 1 bản vào hồ sơ công trình, TTQLHTKT giữ 1 bản vào hồ sơ quản lý. Hai bản có giá trị pháp lý như nhau.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CÔNG CỤ HỖ TRỢ -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-icon">🛠️</span>
+      <span class="card-title">Công cụ hỗ trợ thực hiện quy trình</span>
+    </div>
+    <div class="card-body">
+      <table class="tbl">
+        <thead>
+          <tr><th>Công cụ</th><th>Dùng ở bước</th><th>Mô tả</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>📱 dentat.html</strong></td>
+            <td>Bước 1, 4, 5, 6</td>
+            <td>Ứng dụng quản lý đèn chính — thêm hồ sơ, cập nhật trạng thái, xuất báo cáo, xem bản đồ toàn khu vực</td>
+          </tr>
+          <tr>
+            <td><strong>📲 bcsc.html</strong></td>
+            <td>Bước 1</td>
+            <td>Form báo cáo sự cố dành cho người dân hoặc nhân viên nhanh — nhập từ điện thoại, yêu cầu có GPS</td>
+          </tr>
+          <tr>
+            <td><strong>📄 Xuất PDF</strong></td>
+            <td>Bước 2</td>
+            <td>Nhấn nút <em>📄 PDF</em> trong sheet thông tin đèn → tab xem trước → nhấn "Lưu PDF" → in 2 bản để ký</td>
+          </tr>
+          <tr>
+            <td><strong>📝 Xuất Word</strong></td>
+            <td>Bước 2</td>
+            <td>Nhấn nút <em>📝 Word</em> → tải về file .doc → chỉnh sửa bổ sung trong Word trước khi in nếu cần</td>
+          </tr>
+          <tr>
+            <td><strong>✅ Quick Fix</strong></td>
+            <td>Bước 5</td>
+            <td>Sau khi sửa xong, nhấn <em>✅ Đã sửa</em> trong sheet thông tin — tự ghi Người sửa và Ngày sửa, cập nhật trạng thái ngay lập tức</td>
+          </tr>
+          <tr>
+            <td><strong>📊 Báo cáo định kỳ</strong></td>
+            <td>Bước 6</td>
+            <td>Menu → Báo cáo hàng ngày → lọc theo khoảng thời gian, phường, người → xuất Excel phục vụ thanh quyết toán</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  © 2026 CSKVTT — Hệ thống Quản lý Đèn tắt Chiếu sáng Công cộng TP.HCM<br>
+  <a href="dentat.html">← Quay lại ứng dụng</a> &nbsp;|&nbsp;
+  <a href="huongdan.html">📖 Hướng dẫn sử dụng</a>
+</div>
+
+</body>
+</html>
