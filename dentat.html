@@ -1875,6 +1875,22 @@ async function saveMarkerPopup() {
   const trangThai = document.getElementById('fTrangThai').value;
   if (!soTru) { showToast('Vui lòng nhập số trụ'); return; }
   if (!trangThai) { showToast('Vui lòng chọn trạng thái'); return; }
+
+  // Cảnh báo: trạng thái HƯ nhưng còn dữ liệu sửa chữa cũ
+  const isBroken = ['1','2','5','7'].includes(trangThai);
+  const ngaySuaEl = document.getElementById('fNgaySua');
+  if (isBroken && ngaySuaEl.value) {
+    const ngaySuaDisplay = ngaySuaEl.value.split('-').reverse().join('/');
+    const nguoiSua = document.getElementById('fNguoiSua').value.trim();
+    const msg = `⚠️ Trạng thái là ĐÈN HƯ nhưng hồ sơ đang có thông tin sửa chữa:\n`
+      + `• Ngày sửa: ${ngaySuaDisplay}${nguoiSua ? '\n• Người sửa: ' + nguoiSua : ''}\n\n`
+      + `Xóa thông tin sửa cũ để đảm bảo tính chính xác?`;
+    if (confirm(msg)) {
+      ngaySuaEl.value = '';
+      document.getElementById('fNguoiSua').value = '';
+      document.getElementById('fVatTuSua').value = '';
+    }
+  }
   const btn = document.getElementById('mpopSaveBtn');
   const orig = btn.textContent;
 
@@ -1892,6 +1908,28 @@ async function saveMarkerPopup() {
     showToast('✅ Upload ảnh thành công');
   }
   const finalImagePath = markerImages.map(img => img.path).filter(Boolean).join(';');
+
+  // 1b. Cảnh báo trùng Số trụ khi tạo mới
+  const currentId = document.getElementById('fId').value.trim();
+  const isNewRecord = !loadedData.some(row => {
+    const p = parseRow(row); return String(p.id || '').trim() === currentId;
+  });
+  if (isNewRecord && soTru) {
+    const dup = loadedData.find(row => {
+      const p = parseRow(row);
+      return normalizeText(String(p.soTru || '')) === normalizeText(soTru);
+    });
+    if (dup) {
+      const pd = parseRow(dup);
+      const statusLabel = (STATUS_CONFIG[String(pd.trangThai)] || {}).label || 'Không xác định';
+      const msg = `⚠️ Số trụ "${soTru}" đã có trong hệ thống:\n`
+        + `  • Trạng thái: ${statusLabel}\n`
+        + `  • Phát hiện: ${pd.ngayPhatHien || '—'}\n`
+        + (pd.ngaySua ? `  • Đã sửa: ${pd.ngaySua} · ${pd.nguoiSua || ''}\n` : '')
+        + `\nTạo mới sẽ sinh hồ sơ TRÙNG trên bản đồ.\nNên mở hồ sơ hiện có → Sửa thay vì tạo mới.\n\nVẫn muốn tạo hồ sơ mới?`;
+      if (!confirm(msg)) { btn.disabled = false; btn.textContent = orig; return; }
+    }
+  }
 
   // 2. Build rowData
   const lat = parseFloat(document.getElementById('fLat').value);

@@ -257,12 +257,13 @@ function updateRow(sheet, hIdx, rowNum, data) {
 }
 
 // Ghi { 'Tên cột Sheet': value } vào đúng cột bằng hIdx (normalized)
+// value === '' → xóa ô cũ (dùng clearContent để tránh ghi chuỗi rỗng)
 function updateRowFields(sheet, hIdx, rowNum, fieldValues) {
   for (const [header, value] of Object.entries(fieldValues)) {
     const col = hIdx[norm(header)];
-    if (col !== undefined && value !== null && value !== undefined) {
-      sheet.getRange(rowNum, col + 1).setValue(value);
-    }
+    if (col === undefined || value === null || value === undefined) continue;
+    const cell = sheet.getRange(rowNum, col + 1);
+    if (value === '') { cell.clearContent(); } else { cell.setValue(value); }
   }
 }
 
@@ -276,12 +277,13 @@ function appendRow(sheet, headers, hIdx, data) {
 }
 
 // Chuyển payload camelCase → { 'Tên cột Sheet': giá trị }
+// Giữ lại empty string để updateRowFields có thể xóa giá trị cũ trong sheet
 function buildFieldValues(data) {
   const result = {};
   for (const [key, value] of Object.entries(data)) {
     if (key === 'action') continue;
     const header = FIELD_MAP[key] || key;
-    if (value !== undefined && value !== null && value !== '') {
+    if (value !== undefined && value !== null) {
       result[header] = value;
     }
   }
