@@ -1057,6 +1057,14 @@ function daysBetween(dateStr) {
   const today = new Date(); today.setHours(0,0,0,0);
   return Math.floor((today - d) / 86400000);
 }
+// Trạng thái hiển thị thực tế: mã 1/7 hư > 10 ngày → tự động tính là mã 5
+function effectiveStatus(p) {
+  if (['1','7'].includes(String(p.trangThai))) {
+    const d = daysBetween(p.ngayPhatHien);
+    if (d !== null && d > 10) return '5';
+  }
+  return String(p.trangThai || '');
+}
 function todayStr() {
   const n = new Date();
   return `${String(n.getDate()).padStart(2,'0')}/${String(n.getMonth()+1).padStart(2,'0')}/${n.getFullYear()}`;
@@ -1218,7 +1226,7 @@ async function uploadImageViaGas(dataUrl, soTru) {
 // ── POPUP CONTENT ──
 function createPopupContent(row, rowIndex) {
   const p = parseRow(row);
-  const cfg = STATUS_CONFIG[p.trangThai] || { label: 'Không xác định', color: '#94a3b8', bg: '#f1f5f9', emoji: '❓' };
+  const cfg = STATUS_CONFIG[effectiveStatus(p)] || { label: 'Không xác định', color: '#94a3b8', bg: '#f1f5f9', emoji: '❓' };
   const imgUrls = (p.hinhAnh || '').split(';').map(s => s.trim()).filter(Boolean).map(normalizeImagePath);
   const avatarHtml = imgUrls.length
     ? imgUrls.map(u => `<img class="pc-avatar" src="${u}" onclick="window.open('${u}','_blank')" title="Xem ảnh đầy đủ" onerror="this.outerHTML='<div class=\\'pc-avatar-ph\\'>💡</div>'">`).join('')
@@ -1316,7 +1324,7 @@ function addMarkerRow(row, idx) {
     if (idx < 3) console.warn('[dentat] Row', idx, 'invalid coords — lat:', p.lat, 'lon:', p.lon, 'keys:', Object.keys(row).slice(0,8));
     return null;
   }
-  const icon = createStatusIcon(p.trangThai);
+  const icon = createStatusIcon(effectiveStatus(p));
   const marker = L.marker([p.lat, p.lon], { icon });
   const entry = { lat: p.lat, lon: p.lon, name: p.soTru, marker, row, rowIndex: idx, labelMarker: null };
   marker.on('click', () => openInfoSheet(idx));
@@ -1355,7 +1363,7 @@ function applyFilter() {
   markers.forEach(entry => {
     if (!entry) return;
     const p = parseRow(entry.row);
-    const hiddenByStatus = hiddenFilters.has(String(p.trangThai));
+    const hiddenByStatus = hiddenFilters.has(effectiveStatus(p));
     const hiddenByLoai = filterLoaiDen !== '' && (p.loaiDen || '').toUpperCase() !== filterLoaiDen;
     const hiddenByNguoi = filterNguoi !== '' && normalizeText(p.nguoiPhatHien || '') !== normalizeText(filterNguoi);
     const hidden = hiddenByStatus || hiddenByLoai || hiddenByNguoi;
@@ -1370,7 +1378,7 @@ function applyFilter() {
 }
 function updateStats() {
   const counts = {}; Object.keys(STATUS_CONFIG).forEach(k => counts[k] = 0);
-  loadedData.forEach(row => { const p = parseRow(row); const s = String(p.trangThai||''); if (counts[s] !== undefined) counts[s]++; });
+  loadedData.forEach(row => { const p = parseRow(row); const s = effectiveStatus(p); if (counts[s] !== undefined) counts[s]++; });
   Object.keys(counts).forEach(s => {
     const el = document.getElementById(`cnt-${s}`); if (el) el.textContent = counts[s];
     const chip = document.getElementById(`chip-${s}`);
@@ -1383,7 +1391,7 @@ function buildFilterChips() {
   const sel = document.getElementById('filterStatusSelect');
   if (!sel) return;
   const counts = {}; Object.keys(STATUS_CONFIG).forEach(k => counts[k] = 0);
-  loadedData.forEach(row => { const p = parseRow(row); const s = String(p.trangThai||''); if (counts[s] !== undefined) counts[s]++; });
+  loadedData.forEach(row => { const p = parseRow(row); const s = effectiveStatus(p); if (counts[s] !== undefined) counts[s]++; });
   sel.innerHTML = '';
   Object.entries(STATUS_CONFIG).forEach(([s, cfg]) => {
     const opt = document.createElement('option');
@@ -1444,7 +1452,7 @@ function openStatusList(status) {
   document.getElementById('slDot').style.background = cfg.color;
   document.getElementById('slTitle').textContent = cfg.label;
 
-  const items = markers.filter(Boolean).filter(e => String(parseRow(e.row).trangThai) === String(status));
+  const items = markers.filter(Boolean).filter(e => effectiveStatus(parseRow(e.row)) === String(status));
   document.getElementById('slCnt').textContent = `${items.length} đèn`;
 
   const body = document.getElementById('slBody');
