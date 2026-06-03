@@ -5,6 +5,9 @@
 const SHEET_NAME  = 'DanhSachDen';  // ← Tab chứa dữ liệu đèn
 const USERS_SHEET = 'TaiKhoan';     // ← Tab tài khoản: tenDangNhap | matKhau | hoTen | vaiTro
 
+// Cột ngày phải lưu dạng TEXT để Sheets không tự convert sang date serial (tránh lỗi đảo ngày/tháng)
+const DATE_TEXT_COLS = new Set(['Ngày phát hiện', 'Ngày sửa']);
+
 // Map camelCase JS → tên cột Sheet chính xác
 const FIELD_MAP = {
   'id':            'ID',
@@ -257,23 +260,32 @@ function updateRow(sheet, hIdx, rowNum, data) {
 }
 
 // Ghi { 'Tên cột Sheet': value } vào đúng cột bằng hIdx (normalized)
-// value === '' → xóa ô cũ (dùng clearContent để tránh ghi chuỗi rỗng)
+// Cột ngày phải setNumberFormat('@') trước để Sheets lưu dạng TEXT, không auto-convert ngày tháng
 function updateRowFields(sheet, hIdx, rowNum, fieldValues) {
   for (const [header, value] of Object.entries(fieldValues)) {
     const col = hIdx[norm(header)];
     if (col === undefined || value === null || value === undefined) continue;
     const cell = sheet.getRange(rowNum, col + 1);
-    if (value === '') { cell.clearContent(); } else { cell.setValue(value); }
+    if (value === '') {
+      cell.clearContent();
+    } else {
+      if (DATE_TEXT_COLS.has(header)) cell.setNumberFormat('@');
+      cell.setValue(value);
+    }
   }
 }
 
 // Thêm hàng mới theo đúng thứ tự cột
 function appendRow(sheet, headers, hIdx, data) {
   const fieldValues = buildFieldValues(data);
-  const row = headers.map(h => {
-    return fieldValues[h] !== undefined ? fieldValues[h] : '';
-  });
+  const row = headers.map(h => fieldValues[h] !== undefined ? fieldValues[h] : '');
   sheet.appendRow(row);
+  // Sau khi append, buộc cột ngày thành text format để tránh Sheets auto-convert
+  const lastRow = sheet.getLastRow();
+  for (const header of DATE_TEXT_COLS) {
+    const col = hIdx[norm(header)];
+    if (col !== undefined) sheet.getRange(lastRow, col + 1).setNumberFormat('@');
+  }
 }
 
 // Chuyển payload camelCase → { 'Tên cột Sheet': giá trị }

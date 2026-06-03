@@ -2035,7 +2035,9 @@ function renderImagePreview() {
   }).join('');
 }
 function removeMarkerImage(i) { markerImages.splice(i, 1); renderImagePreview(); }
-function resizeImage(dataUrl, cb) {
+// meta: { timestamp, lat, lon } — nếu có sẽ vẽ watermark lên ảnh
+function resizeImage(dataUrl, meta, cb) {
+  if (typeof meta === 'function') { cb = meta; meta = null; } // backward compat
   const img = new Image();
   img.onload = () => {
     const canvas = document.createElement('canvas');
@@ -2044,7 +2046,29 @@ function resizeImage(dataUrl, cb) {
     const sc = Math.min(1, 800 / Math.max(w, h));
     w = Math.round(w*sc); h = Math.round(h*sc);
     let q = 0.88;
-    const render = () => { canvas.width=w; canvas.height=h; ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h); ctx.drawImage(img,0,0,w,h); return canvas.toDataURL('image/jpeg',q); };
+    const render = () => {
+      canvas.width=w; canvas.height=h;
+      ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h);
+      ctx.drawImage(img,0,0,w,h);
+      if (meta) {
+        const lines = [];
+        if (meta.timestamp) lines.push('⏱ ' + meta.timestamp);
+        if (meta.lat && meta.lon) lines.push('📍 ' + Number(meta.lat).toFixed(6) + ', ' + Number(meta.lon).toFixed(6));
+        if (lines.length) {
+          const fs = Math.max(11, Math.round(w * 0.03));
+          ctx.font = 'bold ' + fs + 'px monospace';
+          const lh = fs + 5, px = 8, py = 5;
+          const bh = lines.length * lh + py * 2;
+          const bw = Math.max(...lines.map(l => ctx.measureText(l).width)) + px * 2;
+          const bx = w - bw - 6, by = h - bh - 6;
+          ctx.fillStyle = 'rgba(0,0,0,0.58)';
+          ctx.fillRect(bx, by, bw, bh);
+          ctx.fillStyle = '#fff';
+          lines.forEach((line, i) => ctx.fillText(line, bx + px, by + py + fs + i * lh));
+        }
+      }
+      return canvas.toDataURL('image/jpeg', q);
+    };
     let r = render();
     while (r.length > MAX_IMG_LEN && q > 0.1) { q -= .08; r = render(); }
     while (r.length > MAX_IMG_LEN && Math.max(w,h) > 100) { w=Math.round(w*.85); h=Math.round(h*.85); r=render(); }
@@ -2053,20 +2077,38 @@ function resizeImage(dataUrl, cb) {
   img.onerror = () => cb('', 'Không đọc được ảnh');
   img.src = dataUrl;
 }
+function saveImageToDevice(dataUrl, soTru) {
+  try {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = 'den-tat-' + (soTru ? soTru.replace(/\s+/g,'-') + '-' : '') + Date.now() + '.jpg';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  } catch(e) { /* iOS không hỗ trợ — bỏ qua */ }
+}
 function handleImageFile(e) {
   const files = e.target.files;
   if (!files || !files.length) return;
   const remaining = 3 - markerImages.length;
   if (remaining <= 0) { showToast('Tối đa 3 ảnh'); return; }
   const toProcess = Array.from(files).slice(0, remaining);
+  // Lấy GPS + thời gian hiện tại để watermark
+  const lat = parseFloat(document.getElementById('fLat').value);
+  const lon = parseFloat(document.getElementById('fLon').value);
+  const now = new Date();
+  const ts = String(now.getDate()).padStart(2,'0') + '/' + String(now.getMonth()+1).padStart(2,'0') + '/' + now.getFullYear()
+    + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  const meta = { timestamp: ts, lat: Number.isFinite(lat) ? lat : null, lon: Number.isFinite(lon) ? lon : null };
+  const soTru = document.getElementById('fSoTru').value.trim();
   let done = 0;
   toProcess.forEach(file => {
     const reader = new FileReader();
-    reader.onload = ev => resizeImage(ev.target.result, (res, err) => {
-      if (res) { markerImages.push({ dataUrl: res, path: '' }); }
-      else { showToast('❌ ' + (err || 'Lỗi ảnh')); }
+    reader.onload = ev => resizeImage(ev.target.result, meta, (res, err) => {
+      if (res) {
+        markerImages.push({ dataUrl: res, path: '' });
+        saveImageToDevice(res, soTru);
+      } else { showToast('❌ ' + (err || 'Lỗi ảnh')); }
       done++;
-      if (done === toProcess.length) { renderImagePreview(); showToast(`✅ ${markerImages.length} ảnh sẵn sàng`); }
+      if (done === toProcess.length) { renderImagePreview(); showToast('✅ ' + markerImages.length + ' ảnh đã lưu về máy'); }
     });
     reader.readAsDataURL(file);
   });
