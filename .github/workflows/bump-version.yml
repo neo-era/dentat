@@ -1,0 +1,38 @@
+name: Bump app version
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '*.html'
+      - '*.js'
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bump version in dentat.html
+        id: bump
+        run: |
+          CURRENT=$(grep -oP "const APP_VERSION = 'v\K[0-9]+" dentat.html | head -1)
+          if [ -z "$CURRENT" ]; then CURRENT=0; fi
+          NEW=$((CURRENT + 1))
+          sed -i "s/const APP_VERSION = 'v${CURRENT}'/const APP_VERSION = 'v${NEW}'/" dentat.html
+          echo "new_version=v${NEW}" >> $GITHUB_OUTPUT
+          echo "Bumped: v${CURRENT} → v${NEW}"
+
+      - name: Commit version bump
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add dentat.html
+          git diff --staged --quiet || git commit -m "chore: bump to ${{ steps.bump.outputs.new_version }} [skip ci]"
+          git push

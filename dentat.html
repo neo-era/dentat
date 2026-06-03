@@ -524,7 +524,7 @@
 
 <!-- ── TOP BAR ── -->
 <header id="topBar">
-  <div class="topbar-brand"><span>💡</span>ĐÈN TẮT CSCC</div>
+  <div class="topbar-brand"><span>💡</span>ĐÈN TẮT CSCC<small id="appVerBadge" style="-webkit-text-fill-color:rgba(255,255,255,.35);font-size:10px;font-weight:500;margin-left:2px"></small></div>
   <div class="topbar-search">
     <input type="text" id="searchInput" placeholder="Tìm số trụ, đường, phường..." autocomplete="off"
       onkeydown="if(event.key==='Enter')searchMarkers()">
@@ -828,6 +828,7 @@
 <script>
 'use strict';
 // ── CONSTANTS ──
+const APP_VERSION = 'v1.0';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0YAMrbBpNdTL0cmE_1LdQ7SJzeUW0J0VHhWpv3WqW9LvLyBTP8YV2nPzuuR27pJTZ8g/exec';
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?output=csv';
 const PHUTRACH_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?gid=2043665350&single=true&output=csv';
@@ -2517,6 +2518,8 @@ if ('serviceWorker' in navigator) {
 
 // ── INIT ──
 window.onload = () => {
+  const vBadge = document.getElementById('appVerBadge');
+  if (vBadge) vBadge.textContent = APP_VERSION;
   initializeMap();
   buildFilterChips();
   buildExtraFilters();
