@@ -167,7 +167,7 @@
 <nav class="topbar">
   <a href="dentat.html" class="topbar-back">← Mở app</a>
   <span class="topbar-title">💡 Hướng dẫn sử dụng</span>
-  <span class="topbar-ver">v1.8</span>
+  <span class="topbar-ver">v1.9</span>
 </nav>
 
 <!-- HERO -->
@@ -402,6 +402,13 @@
           <div class="tip-desc">Các đèn <strong>đang hư / đang có sự cố</strong> (mã 1, 2, 5, 7) có vòng nhấp nháy xung quanh dot để dễ phát hiện từ xa trên bản đồ.</div>
         </div>
       </div>
+      <div class="tip warn" style="margin-top:8px">
+        <span class="tip-icon">🟣</span>
+        <div class="tip-body">
+          <div class="tip-title">Mã 5 (>10 ngày) tự động — không cần đặt thủ công</div>
+          <div class="tip-desc">Đèn có mã <strong>1 (LED hư)</strong> hoặc <strong>7 (HPS hư)</strong> mà chưa được sửa sau <strong>hơn 10 ngày</strong> kể từ ngày phát hiện sẽ tự động hiển thị màu <strong style="color:#7c3aed">tím</strong> và được tính vào chip ">10 ngày" — không cần ai đổi trạng thái thủ công. Dữ liệu trong Sheet vẫn giữ nguyên mã 1 hoặc 7.</div>
+        </div>
+      </div>
       <div class="tip ok" style="margin-top:8px">
         <span class="tip-icon">📍</span>
         <div class="tip-body">
@@ -454,7 +461,11 @@
           <div class="step-num">4b</div>
           <div class="step-body">
             <div class="step-title">Chụp ảnh hiện trường (tùy chọn, tối đa 3 ảnh)</div>
-            <div class="step-desc">Nhấn <strong>📷 Chụp / chọn ảnh</strong> để mở camera hoặc chọn ảnh từ thư viện. Có thể chọn nhiều ảnh cùng lúc, tối đa <strong>3 ảnh</strong> mỗi hồ sơ. Mỗi ảnh hiển thị dạng thumbnail — nhấn <strong>✕</strong> trên thumbnail để xóa bớt ảnh trước khi lưu. Ảnh được tự động thu nhỏ và lưu kèm hồ sơ đèn, tên file cách nhau bằng dấu <strong>;</strong>.</div>
+            <div class="step-desc">Nhấn <strong>📷 Chụp / chọn ảnh</strong> để mở camera hoặc chọn ảnh từ thư viện. Có thể chọn nhiều ảnh cùng lúc, tối đa <strong>3 ảnh</strong> mỗi hồ sơ. Mỗi ảnh hiển thị dạng thumbnail — nhấn <strong>✕</strong> trên thumbnail để xóa bớt ảnh trước khi lưu.<br><br>
+              Ảnh được tự động:<br>
+              • <strong>Đóng dấu thời gian và tọa độ GPS</strong> vào góc dưới phải (⏱ ngày giờ · 📍 lat, lon)<br>
+              • <strong>Lưu về điện thoại</strong> ngay sau khi chụp (Android: tải về Downloads; iOS: mở trong tab mới → nhấn giữ → Lưu ảnh)<br>
+              Mẹo: Lấy GPS <strong>trước</strong> khi nhấn 📷 để tọa độ được đóng dấu vào ảnh.</div>
           </div>
         </div>
         <div class="step">
@@ -478,6 +489,20 @@
         <div class="tip-body">
           <div class="tip-title">Điền tự động</div>
           <div class="tip-desc">Tên đường và phường được điền tự động từ tọa độ GPS qua Nominatim. <em>Người phát hiện</em> tự điền từ tài khoản đang đăng nhập. <em>ID</em> tự tạo từ timestamp (13 chữ số) — đảm bảo không trùng dù nhiều người thêm cùng lúc từ các thiết bị khác nhau.</div>
+        </div>
+      </div>
+      <div class="tip warn" style="margin-top:8px">
+        <span class="tip-icon">⚠️</span>
+        <div class="tip-body">
+          <div class="tip-title">Cảnh báo trùng Số trụ</div>
+          <div class="tip-desc">Khi nhấn Lưu, nếu Số trụ đã tồn tại trong hệ thống, ứng dụng hiện hộp thoại cảnh báo kèm thông tin hồ sơ cũ (trạng thái, ngày phát hiện, người sửa). Nên <strong>mở hồ sơ hiện có → Sửa</strong> thay vì tạo mới để tránh hồ sơ trùng lặp trên bản đồ.</div>
+        </div>
+      </div>
+      <div class="tip err" style="margin-top:8px">
+        <span class="tip-icon">🔴</span>
+        <div class="tip-body">
+          <div class="tip-title">Cảnh báo dữ liệu sửa chữa cũ</div>
+          <div class="tip-desc">Khi chọn trạng thái <strong>Đèn hư</strong> mà form đang có thông tin Ngày sửa / Người sửa từ lần trước, ứng dụng hỏi có muốn xóa thông tin cũ không. Chọn <strong>OK</strong> để đảm bảo hồ sơ mới không lẫn dữ liệu từ lần sửa trước. Chọn <strong>Hủy</strong> để giữ nguyên nếu có lý do đặc biệt.</div>
         </div>
       </div>
     </div>

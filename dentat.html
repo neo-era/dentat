@@ -1031,7 +1031,11 @@ function parseDate(val) {
   return s;
 }
 
-// Parse dd/mm/yyyy hoặc yyyy-mm-dd → Date object theo giờ local (không bị lệch timezone)
+// Parse ngày tháng → Date object theo giờ local
+// Hỗ trợ 3 định dạng:
+//   DD/MM/YYYY  — app luôn ghi với leading zero (vd "03/06/2026") → p[0].length = 2
+//   M/D/YYYY    — Google Sheets US export không có leading zero (vd "6/1/2026") → p[0].length = 1
+//   YYYY-MM-DD  — ISO format (input type=date)
 function parseViDate(dateStr) {
   if (!dateStr) return null;
   const s = String(dateStr).trim();
@@ -1040,13 +1044,14 @@ function parseViDate(dateStr) {
   if (s.includes('/')) {
     const p = s.split('/');
     if (p.length < 3) return null;
-    if (p[0].length === 4) { [year, month, day] = p; }   // yyyy/mm/dd (hiếm)
-    else { [day, month, year] = p; }                       // dd/mm/yyyy
+    if (p[0].length === 4) { [year, month, day] = p; }        // YYYY/MM/DD (hiếm)
+    else if (p[0].length === 1) { [month, day, year] = p; }   // M/D/YYYY — Sheets US export (không có số 0 đứng đầu)
+    else { [day, month, year] = p; }                            // DD/MM/YYYY — app format (có số 0 đứng đầu)
   } else if (s.includes('-')) {
     const p = s.split('-');
     if (p.length < 3) return null;
-    if (p[0].length === 4) { [year, month, day] = p; }   // yyyy-mm-dd (ISO)
-    else { [day, month, year] = p; }                       // dd-mm-yyyy
+    if (p[0].length === 4) { [year, month, day] = p; }        // YYYY-MM-DD (ISO)
+    else { [day, month, year] = p; }                            // DD-MM-YYYY
   } else return null;
   const d = new Date(+year, +month - 1, +day);
   return isNaN(d) ? null : d;
@@ -2060,6 +2065,8 @@ function resizeImage(dataUrl, meta, cb) {
       ctx.drawImage(img,0,0,w,h);
       if (meta) {
         const lines = [];
+        const label = [meta.soTru, meta.tenTu].filter(Boolean).join(' · ');
+        if (label) lines.push('💡 ' + label);
         if (meta.timestamp) lines.push('⏱ ' + meta.timestamp);
         if (meta.lat && meta.lon) lines.push('📍 ' + Number(meta.lat).toFixed(6) + ', ' + Number(meta.lon).toFixed(6));
         if (lines.length) {
@@ -2105,8 +2112,9 @@ function handleImageFile(e) {
   const now = new Date();
   const ts = String(now.getDate()).padStart(2,'0') + '/' + String(now.getMonth()+1).padStart(2,'0') + '/' + now.getFullYear()
     + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
-  const meta = { timestamp: ts, lat: Number.isFinite(lat) ? lat : null, lon: Number.isFinite(lon) ? lon : null };
   const soTru = document.getElementById('fSoTru').value.trim();
+  const tenTu = document.getElementById('fTenTu').value.trim();
+  const meta = { soTru, tenTu, timestamp: ts, lat: Number.isFinite(lat) ? lat : null, lon: Number.isFinite(lon) ? lon : null };
   let done = 0;
   toProcess.forEach(file => {
     const reader = new FileReader();
