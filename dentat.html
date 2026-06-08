@@ -832,7 +832,7 @@
 <script>
 'use strict';
 // ── CONSTANTS ──
-const APP_VERSION = 'v3.2';
+const APP_VERSION = 'v3.3';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0YAMrbBpNdTL0cmE_1LdQ7SJzeUW0J0VHhWpv3WqW9LvLyBTP8YV2nPzuuR27pJTZ8g/exec';
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?output=csv';
 const PHUTRACH_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?gid=2043665350&single=true&output=csv';
@@ -1942,8 +1942,9 @@ function buildBienBanContent(idx) {
     + '<div style="margin-top:6px">- Yêu cầu tiến độ thực hiện: <span class="cb">&nbsp;</span> Xử lý gấp &nbsp;&nbsp;&nbsp; <span class="cb">&nbsp;</span> Bình thường</div>'
     + '<div style="margin-top:6px">- Ý kiến khác:</div>' + dl(2)
     + '</div></div>'
-    + '<div class="sc"><span class="st">8 - Hình ảnh sự cố, bất cập đính kèm:</span>'
-    + '<div class="sb">' + (imgUrls.length ? '(Có ' + imgUrls.length + ' ảnh đính kèm ở trang sau)' : '(Không có ảnh đính kèm)') + '</div></div>'
+    + '<div class="sc"><span class="st">8 - Hình ảnh sự cố, bất cập đính kèm:</span> '
+    + (imgUrls.length ? '(Có ' + imgUrls.length + ' ảnh đính kèm ở trang sau)' : '(Không có ảnh đính kèm)')
+    + '</div>'
     + '</div>';
   const pg2 = '<div class="page pb">'
     + '<div class="kl">* Kết luận:</div>'
