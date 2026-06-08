@@ -828,7 +828,7 @@
 <script>
 'use strict';
 // ── CONSTANTS ──
-const APP_VERSION = 'v1.0';
+const APP_VERSION = 'v2.0';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0YAMrbBpNdTL0cmE_1LdQ7SJzeUW0J0VHhWpv3WqW9LvLyBTP8YV2nPzuuR27pJTZ8g/exec';
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?output=csv';
 const PHUTRACH_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?gid=2043665350&single=true&output=csv';
@@ -2420,7 +2420,7 @@ function saveMarkerData() {
 // ── DAILY REPORT ──
 function populateReportFilters() {
   const norm = v => (v||'').trim();
-  const phuongs = [...new Set(loadedData.map(r => norm(parseRow(r).phuong)).filter(Boolean))].sort((a,b) => a.localeCompare(b,'vi'));
+  const phuongs = [...new Set(loadedData.map(r => canonicalPhuong(parseRow(r).phuong)).filter(Boolean))].sort((a,b) => a.localeCompare(b,'vi'));
   const nguois  = [...new Set(loadedData.map(r => norm(parseRow(r).nguoiPhatHien)).filter(Boolean))].sort((a,b) => a.localeCompare(b,'vi'));
   const sel = (id, items, all) => {
     const el = document.getElementById(id);
@@ -2464,7 +2464,7 @@ function getReportRows() {
     if (!p.ngayPhatHien) return false;
     const d = parseViDate(p.ngayPhatHien);
     if (!d || d < fromD || d > toD) return false;
-    if (fPhuong && (p.phuong||'').trim() !== fPhuong) return false;
+    if (fPhuong && canonicalPhuong(p.phuong) !== fPhuong) return false;
     if (fNguoi  && (p.nguoiPhatHien||'').trim().toLowerCase() !== fNguoi) return false;
     if (fTrangThai && String(p.trangThai||'').trim() !== fTrangThai) return false;
     return true;
