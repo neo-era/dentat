@@ -712,7 +712,7 @@
       <div id="fCoordsText" class="coords-info">Tọa độ: —</div>
       <div class="form-row" style="margin-top:10px">
         <div class="fg"><label>Đường</label><input id="fDuong" type="text" placeholder="Tên đường"></div>
-        <div class="fg"><label>Phường</label><input id="fPhuong" type="text" placeholder="Tên phường"></div>
+        <div class="fg"><label>Phường/Xã</label><input id="fPhuong" type="text" placeholder="Gõ để chọn phường/xã" list="phuongList" autocomplete="off"><datalist id="phuongList"></datalist></div>
       </div>
 
       <div class="mpop-section-title">Sự cố</div>
@@ -1010,6 +1010,69 @@ document.addEventListener('click', e => { if (!e.target.closest('#searchDrop') &
 // ── HELPERS ──
 function normalizeText(t) { return (t||'').toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase(); }
 function normalizeKey(v) { return (v||'').toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').trim().toLowerCase(); }
+
+// 168 đơn vị hành chính cấp xã của TP.HCM mới (113 phường + 54 xã + 1 đặc khu),
+// hiệu lực 01/7/2025 theo Nghị quyết 1685/NQ-UBTVQH15. Nguồn: tphcm.chinhphu.vn.
+const PHUONG_LIST = [
+  'Phường Sài Gòn','Phường Tân Định','Phường Bến Thành','Phường Cầu Ông Lãnh','Phường Bàn Cờ',
+  'Phường Xuân Hòa','Phường Nhiêu Lộc','Phường Xóm Chiếu','Phường Khánh Hội','Phường Vĩnh Hội',
+  'Phường Chợ Quán','Phường An Đông','Phường Chợ Lớn','Phường Bình Tây','Phường Bình Tiên',
+  'Phường Bình Phú','Phường Phú Lâm','Phường Tân Thuận','Phường Phú Thuận','Phường Tân Mỹ',
+  'Phường Tân Hưng','Phường Chánh Hưng','Phường Phú Định','Phường Bình Đông','Phường Diên Hồng',
+  'Phường Vườn Lài','Phường Hòa Hưng','Phường Minh Phụng','Phường Bình Thới','Phường Hòa Bình',
+  'Phường Phú Thọ','Phường Đông Hưng Thuận','Phường Trung Mỹ Tây','Phường Tân Thới Hiệp','Phường Thới An',
+  'Phường An Phú Đông','Phường An Lạc','Phường Bình Tân','Phường Tân Tạo','Phường Bình Trị Đông',
+  'Phường Bình Hưng Hòa','Phường Gia Định','Phường Bình Thạnh','Phường Bình Lợi Trung','Phường Thạnh Mỹ Tây',
+  'Phường Bình Quới','Phường Hạnh Thông','Phường An Nhơn','Phường Gò Vấp','Phường An Hội Đông',
+  'Phường Thông Tây Hội','Phường An Hội Tây','Phường Đức Nhuận','Phường Cầu Kiệu','Phường Phú Nhuận',
+  'Phường Tân Sơn Hòa','Phường Tân Sơn Nhất','Phường Tân Hòa','Phường Bảy Hiền','Phường Tân Bình',
+  'Phường Tân Sơn','Phường Tây Thạnh','Phường Tân Sơn Nhì','Phường Phú Thọ Hòa','Phường Tân Phú',
+  'Phường Phú Thạnh','Phường Hiệp Bình','Phường Thủ Đức','Phường Tam Bình','Phường Linh Xuân',
+  'Phường Tăng Nhơn Phú','Phường Long Bình','Phường Long Phước','Phường Long Trường','Phường Cát Lái',
+  'Phường Bình Trưng','Phường Phước Long','Phường An Khánh','Phường Đông Hòa','Phường Dĩ An',
+  'Phường Tân Đông Hiệp','Phường An Phú','Phường Bình Hòa','Phường Lái Thiêu','Phường Thuận An',
+  'Phường Thuận Giao','Phường Thủ Dầu Một','Phường Phú Lợi','Phường Chánh Hiệp','Phường Bình Dương',
+  'Phường Hòa Lợi','Phường Phú An','Phường Tây Nam','Phường Long Nguyên','Phường Bến Cát',
+  'Phường Chánh Phú Hòa','Phường Vĩnh Tân','Phường Bình Cơ','Phường Tân Uyên','Phường Tân Hiệp',
+  'Phường Tân Khánh','Phường Vũng Tàu','Phường Tam Thắng','Phường Rạch Dừa','Phường Phước Thắng',
+  'Phường Long Hương','Phường Bà Rịa','Phường Tam Long','Phường Tân Hải','Phường Tân Phước',
+  'Phường Phú Mỹ','Phường Tân Thành',
+  'Xã Vĩnh Lộc','Xã Tân Vĩnh Lộc','Xã Bình Lợi','Xã Tân Nhựt','Xã Bình Chánh',
+  'Xã Hưng Long','Xã Bình Hưng','Xã Bình Khánh','Xã An Thới Đông','Xã Cần Giờ',
+  'Xã Củ Chi','Xã Tân An Hội','Xã Thái Mỹ','Xã An Nhơn Tây','Xã Nhuận Đức',
+  'Xã Phú Hòa Đông','Xã Bình Mỹ','Xã Đông Thạnh','Xã Hóc Môn','Xã Xuân Thới Sơn',
+  'Xã Bà Điểm','Xã Nhà Bè','Xã Hiệp Phước','Xã Thường Tân','Xã Bắc Tân Uyên',
+  'Xã Phú Giáo','Xã Phước Hòa','Xã Phước Thành','Xã An Long','Xã Trừ Văn Thố',
+  'Xã Bàu Bàng','Xã Long Hòa','Xã Thanh An','Xã Dầu Tiếng','Xã Minh Thạnh',
+  'Xã Châu Pha','Xã Long Hải','Xã Long Điền','Xã Phước Hải','Xã Đất Đỏ',
+  'Xã Nghĩa Thành','Xã Ngãi Giao','Xã Kim Long','Xã Châu Đức','Xã Bình Giã',
+  'Xã Xuân Sơn','Xã Hồ Tràm','Xã Xuyên Mộc','Xã Hòa Hội','Xã Bàu Lâm',
+  'Phường Thới Hòa','Xã Long Sơn','Xã Hòa Hiệp','Xã Bình Châu','Xã Thạnh An',
+  'Đặc khu Côn Đảo',
+];
+// Tra cứu tên chuẩn từ tên người dùng gõ / kết quả reverse-geocode (bỏ dấu, bỏ tiền tố loại)
+const bareKey = s => normalizeKey(s).replace(/^(phuong|xa|dac khu|thi tran|tt)\s+/, '');
+const PHUONG_LOOKUP = (() => {
+  const m = {};
+  PHUONG_LIST.forEach(full => {
+    m[normalizeKey(full)] = full;            // khớp đầy đủ (có tiền tố) — ưu tiên
+    const bk = bareKey(full);
+    if (!(bk in m)) m[bk] = full;            // khớp tên trần; không ghi đè nếu trùng tên
+  });
+  return m;
+})();
+const PHUONG_SET = new Set(PHUONG_LIST);
+// Trả về tên phường/xã chuẩn nếu khớp được, ngược lại giữ nguyên giá trị gốc
+function canonicalPhuong(name) {
+  const s = String(name || '').trim();
+  if (!s) return '';
+  if (PHUONG_SET.has(s)) return s;  // đã đúng tên chính thức (giữ nguyên dấu, vd phân biệt Thanh An / Thạnh An)
+  return PHUONG_LOOKUP[normalizeKey(s)] || PHUONG_LOOKUP[bareKey(s)] || s;
+}
+function populatePhuongDatalist() {
+  const dl = document.getElementById('phuongList');
+  if (dl) dl.innerHTML = PHUONG_LIST.map(n => `<option value="${n}"></option>`).join('');
+}
 function getDistanceMeters(la1,lo1,la2,lo2) {
   const R=6371e3, r=x=>x*Math.PI/180;
   const a=Math.sin(r(la2-la1)/2)**2+Math.cos(r(la1))*Math.cos(r(la2))*Math.sin(r(lo2-lo1)/2)**2;
@@ -1911,7 +1974,8 @@ async function reverseGeocode(lat, lon) {
     const d = await r.json();
     const a = d.address || {};
     const duong = a.road || a.pedestrian || a.footway || a.path || '';
-    const phuong = a.suburb || a.quarter || a.neighbourhood || a.village || a.county || '';
+    const phuongRaw = a.suburb || a.quarter || a.neighbourhood || a.village || a.county || '';
+    const phuong = canonicalPhuong(phuongRaw);  // khớp về 1 trong 168 tên chuẩn nếu được
     if (duong) document.getElementById('fDuong').value = duong;
     if (phuong) document.getElementById('fPhuong').value = phuong;
     if (duong || phuong) showToast('📍 Đã điền tên đường/phường tự động');
@@ -2035,7 +2099,7 @@ async function saveMarkerPopup() {
     congSuat: document.getElementById('fCongSuat').value.trim(),
     trangThai,
     duong: document.getElementById('fDuong').value.trim(),
-    phuong: document.getElementById('fPhuong').value.trim(),
+    phuong: canonicalPhuong(document.getElementById('fPhuong').value),
     // Ngày phát hiện = ngày tạo đối tượng (tự động). Tạo mới → hôm nay; sửa → giữ nguyên ngày gốc.
     ngayPhatHien: editingIndex !== null
       ? (parseRow(loadedData[editingIndex]).ngayPhatHien || todayStr())
@@ -2600,6 +2664,7 @@ window.onload = () => {
   const vBadge = document.getElementById('appVerBadge');
   if (vBadge) vBadge.textContent = APP_VERSION;
   initializeMap();
+  populatePhuongDatalist();
   buildFilterChips();
   buildExtraFilters();
   buildLegend();
