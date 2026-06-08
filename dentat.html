@@ -1033,10 +1033,15 @@ function parseDate(val) {
 }
 
 // Parse ngày tháng → Date object theo giờ local
-// Hỗ trợ 3 định dạng:
-//   DD/MM/YYYY  — app luôn ghi với leading zero (vd "03/06/2026") → p[0].length = 2
-//   M/D/YYYY    — Google Sheets US export không có leading zero (vd "6/1/2026") → p[0].length = 1
-//   YYYY-MM-DD  — ISO format (input type=date)
+// App lẫn người dùng LUÔN đọc/ghi theo kiểu Việt Nam DD/MM/YYYY.
+// Google Sheets đôi khi tự convert text "DD/MM/YYYY" thành ngày thật rồi xuất lại
+// dạng M/D/YYYY (mất số 0 đứng đầu, vd "2/6/2026"). Vì quy ước hiển thị là D/M,
+// ta LUÔN parse theo D/M/Y để khớp với ô Sheet người dùng nhìn thấy.
+// Hỗ trợ định dạng:
+//   DD/MM/YYYY hoặc D/M/YYYY  — mặc định (kiểu Việt Nam)
+//   YYYY/MM/DD, YYYY-MM-DD    — phần đầu 4 chữ số = năm (ISO)
+//   DD-MM-YYYY                — input type=date đã chuyển hoặc dữ liệu cũ
+// An toàn: nếu sau khi parse mà tháng > 12 (vd "5/20/2026") thì đó là M/D thật → tự hoán đổi.
 function parseViDate(dateStr) {
   if (!dateStr) return null;
   const s = String(dateStr).trim();
@@ -1046,14 +1051,15 @@ function parseViDate(dateStr) {
     const p = s.split('/');
     if (p.length < 3) return null;
     if (p[0].length === 4) { [year, month, day] = p; }        // YYYY/MM/DD (hiếm)
-    else if (p[0].length === 1) { [month, day, year] = p; }   // M/D/YYYY — Sheets US export (không có số 0 đứng đầu)
-    else { [day, month, year] = p; }                            // DD/MM/YYYY — app format (có số 0 đứng đầu)
+    else { [day, month, year] = p; }                            // DD/MM/YYYY hoặc D/M/YYYY
   } else if (s.includes('-')) {
     const p = s.split('-');
     if (p.length < 3) return null;
     if (p[0].length === 4) { [year, month, day] = p; }        // YYYY-MM-DD (ISO)
     else { [day, month, year] = p; }                            // DD-MM-YYYY
   } else return null;
+  // Nếu tháng > 12 nhưng ngày hợp lệ làm tháng → là M/D/YYYY thật, hoán đổi lại
+  if (+month > 12 && +day <= 12) { const t = day; day = month; month = t; }
   const d = new Date(+year, +month - 1, +day);
   return isNaN(d) ? null : d;
 }

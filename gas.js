@@ -279,13 +279,15 @@ function updateRowFields(sheet, hIdx, rowNum, fieldValues) {
 function appendRow(sheet, headers, hIdx, data) {
   const fieldValues = buildFieldValues(data);
   const row = headers.map(h => fieldValues[h] !== undefined ? fieldValues[h] : '');
-  sheet.appendRow(row);
-  // Sau khi append, buộc cột ngày thành text format để tránh Sheets auto-convert
-  const lastRow = sheet.getLastRow();
+  const rowNum = sheet.getLastRow() + 1;
+  // PHẢI set text format cho cột ngày TRƯỚC khi ghi giá trị, nếu không Sheets sẽ
+  // tự convert chuỗi "DD/MM/YYYY" (với ngày <= 12) thành ngày thật kiểu M/D rồi
+  // hoán đổi ngày-tháng. Set format sau khi ghi thì đã muộn.
   for (const header of DATE_TEXT_COLS) {
     const col = hIdx[norm(header)];
-    if (col !== undefined) sheet.getRange(lastRow, col + 1).setNumberFormat('@');
+    if (col !== undefined) sheet.getRange(rowNum, col + 1).setNumberFormat('@');
   }
+  sheet.getRange(rowNum, 1, 1, row.length).setValues([row]);
 }
 
 // Chuyển payload camelCase → { 'Tên cột Sheet': giá trị }
