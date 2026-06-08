@@ -1069,8 +1069,9 @@ function canonicalPhuong(name) {
   if (PHUONG_SET.has(s)) return s;  // đã đúng tên chính thức (giữ nguyên dấu, vd phân biệt Thanh An / Thạnh An)
   return PHUONG_LOOKUP[normalizeKey(s)] || PHUONG_LOOKUP[bareKey(s)] || s;
 }
-// Đổ 168 đơn vị vào <select id="fPhuong">, nhóm theo Phường / Xã / Đặc khu
-function populatePhuongSelect() {
+// ── DROPDOWN PHƯỜNG/XÃ ──
+// Đổ TOÀN BỘ 168 đơn vị, nhóm theo Phường / Xã / Đặc khu
+function populatePhuongSelectFull() {
   const sel = document.getElementById('fPhuong');
   if (!sel) return;
   const groups = { 'Phường': [], 'Xã': [], 'Đặc khu': [] };
@@ -1086,8 +1087,49 @@ function populatePhuongSelect() {
   }
   sel.innerHTML = html;
 }
-// Gán giá trị phường vào select: khớp về tên chuẩn; nếu là tên cũ (vd từ GPS) không có trong
-// 168 thì thêm 1 option tạm để vẫn hiển thị & lưu được, người dùng có thể mở dropdown chọn lại.
+// Tính k phường/xã có TÂM gần tọa độ nhất — tâm = trung bình tọa độ các đèn hiện có trong phường đó
+function nearestPhuongs(lat, lon, k = 3) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return [];
+  const acc = {};
+  loadedData.forEach(r => {
+    const p = parseRow(r);
+    const name = canonicalPhuong(p.phuong);
+    if (!PHUONG_SET.has(name)) return;          // chỉ tính phường khớp danh sách chuẩn
+    if (!Number.isFinite(p.lat) || !Number.isFinite(p.lon)) return;
+    const a = acc[name] || (acc[name] = { sLat: 0, sLon: 0, n: 0 });
+    a.sLat += p.lat; a.sLon += p.lon; a.n++;
+  });
+  return Object.entries(acc)
+    .map(([name, v]) => ({ name, d: getDistanceMeters(lat, lon, v.sLat / v.n, v.sLon / v.n) }))
+    .sort((a, b) => a.d - b.d)
+    .slice(0, k)
+    .map(x => x.name);
+}
+// Đổ select chỉ với các phường/xã gần nhất + một mục "Xem tất cả" để mở rộng danh sách đầy đủ
+function populatePhuongSelectNear(near) {
+  const sel = document.getElementById('fPhuong');
+  if (!sel) return;
+  let html = '<option value="">— Chọn phường/xã —</option>';
+  html += `<optgroup label="📍 ${near.length} phường/xã gần nhất">`
+    + near.map(n => `<option value="${n}">${n}</option>`).join('') + '</optgroup>';
+  html += '<option value="__all__">🔎 Xem tất cả 168 phường/xã…</option>';
+  sel.innerHTML = html;
+}
+// Dựng option theo tọa độ: có tọa độ + có dữ liệu lân cận → chỉ 3 gần nhất; ngược lại → toàn bộ
+function buildPhuongOptions(lat, lon) {
+  const near = nearestPhuongs(lat, lon, 3);
+  if (near.length) populatePhuongSelectNear(near);
+  else populatePhuongSelectFull();
+}
+// Đọc tọa độ hiện tại trong form, dựng lại select 3 gần nhất, giữ lựa chọn đang có
+function refreshPhuongByForm() {
+  const lat = parseFloat(document.getElementById('fLat').value);
+  const lon = parseFloat(document.getElementById('fLon').value);
+  const cur = document.getElementById('fPhuong').value;
+  buildPhuongOptions(lat, lon);
+  if (cur && cur !== '__all__') setPhuongValue(cur);
+}
+// Gán giá trị phường vào select; nếu chưa có option tương ứng thì thêm vào (cảnh báo nếu là tên cũ)
 function setPhuongValue(val) {
   const sel = document.getElementById('fPhuong');
   if (!sel) return;
@@ -1097,9 +1139,10 @@ function setPhuongValue(val) {
   if (!c) { sel.value = ''; return; }
   if ([...sel.options].some(o => o.value === c)) { sel.value = c; return; }
   const opt = document.createElement('option');
-  opt.value = c; opt.textContent = c + ' ⚠️ (tên cũ — nên chọn lại)';
+  opt.value = c;
+  opt.textContent = PHUONG_SET.has(c) ? c : (c + ' ⚠️ (tên cũ — nên chọn lại)');
   opt.dataset.temp = '1';
-  sel.insertBefore(opt, sel.options[1] || null);
+  sel.insertBefore(opt, sel.firstChild ? sel.firstChild.nextSibling : null);
   sel.value = c;
 }
 function getDistanceMeters(la1,lo1,la2,lo2) {
@@ -1796,7 +1839,8 @@ function fillForm(row, lat, lon) {
     document.getElementById('fLat').value = Number.isFinite(p.lat) ? p.lat : '';
     document.getElementById('fLon').value = Number.isFinite(p.lon) ? p.lon : '';
     document.getElementById('fDuong').value = p.duong;
-    setPhuongValue(p.phuong);
+    buildPhuongOptions(p.lat, p.lon);   // 3 phường/xã gần nhất theo tọa độ đèn
+    setPhuongValue(p.phuong);           // chọn đúng phường hiện tại của đèn
     document.getElementById('fNgayPhatHien').value = p.ngayPhatHien || '';
     document.getElementById('fNguoiPhatHien').value = p.nguoiPhatHien;
     document.getElementById('fNgaySua').value = p.ngaySua || '';
@@ -1809,12 +1853,13 @@ function fillForm(row, lat, lon) {
     renderImagePreview();
   } else {
     ['fSoTru','fTenTu','fCongSuat','fDuong','fNguoiPhatHien','fNguoiSua','fVatTuSua','fGhiChu','fDienThoai'].forEach(id => document.getElementById(id).value = '');
-    setPhuongValue('');  // reset select (xóa option tạm nếu có)
     document.getElementById('fId').value = Date.now().toString();
     document.getElementById('fLoaiDen').value = '';
     document.getElementById('fTrangThai').value = '1';
     document.getElementById('fLat').value = lat ?? '';
     document.getElementById('fLon').value = lon ?? '';
+    buildPhuongOptions(Number.isFinite(lat) ? lat : NaN, Number.isFinite(lon) ? lon : NaN);  // 3 phường/xã gần nhất
+    setPhuongValue('');  // chưa chọn (xóa option tạm nếu còn)
     document.getElementById('fNgayPhatHien').value = todayStr();
     document.getElementById('fNgaySua').value = '';
     document.getElementById('fCoordsText').textContent = lat != null ? `Tọa độ: ${lat.toFixed(6)}, ${lon.toFixed(6)}` : 'Tọa độ: —';
@@ -2004,10 +2049,9 @@ async function reverseGeocode(lat, lon) {
     const d = await r.json();
     const a = d.address || {};
     const duong = a.road || a.pedestrian || a.footway || a.path || '';
-    const phuongRaw = a.suburb || a.quarter || a.neighbourhood || a.village || a.county || '';
     if (duong) document.getElementById('fDuong').value = duong;
-    if (phuongRaw) setPhuongValue(phuongRaw);  // khớp về 1 trong 168 tên chuẩn nếu được
-    if (duong || phuongRaw) showToast('📍 Đã điền tên đường/phường tự động');
+    // Không tự điền phường từ OSM (tên hay lỗi thời sau sáp nhập) — người dùng chọn từ 3 gần nhất
+    if (duong) showToast('📍 Đã điền tên đường tự động');
   } catch(e) {}
 }
 
@@ -2023,6 +2067,7 @@ function setMarkerToCurrentLocation() {
       document.getElementById('fLon').value = lon.toFixed(6);
       document.getElementById('fCoordsText').textContent = `Tọa độ: ${lat.toFixed(6)}, ${lon.toFixed(6)} ±${Math.round(pos.coords.accuracy)}m`;
       if (btn) { btn.textContent = `📍 GPS: ±${Math.round(pos.coords.accuracy)}m`; btn.disabled = false; }
+      refreshPhuongByForm();   // dựng lại 3 phường/xã gần nhất theo tọa độ mới
       reverseGeocode(lat, lon);
     },
     err => {
@@ -2693,7 +2738,10 @@ window.onload = () => {
   const vBadge = document.getElementById('appVerBadge');
   if (vBadge) vBadge.textContent = APP_VERSION;
   initializeMap();
-  populatePhuongSelect();
+  populatePhuongSelectFull();
+  document.getElementById('fPhuong').addEventListener('change', function () {
+    if (this.value === '__all__') { populatePhuongSelectFull(); this.value = ''; this.focus(); }
+  });
   buildFilterChips();
   buildExtraFilters();
   buildLegend();
