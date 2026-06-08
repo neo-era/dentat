@@ -828,7 +828,7 @@
 <script>
 'use strict';
 // ── CONSTANTS ──
-const APP_VERSION = 'v2.3';
+const APP_VERSION = 'v2.5';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0YAMrbBpNdTL0cmE_1LdQ7SJzeUW0J0VHhWpv3WqW9LvLyBTP8YV2nPzuuR27pJTZ8g/exec';
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?output=csv';
 const PHUTRACH_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?gid=2043665350&single=true&output=csv';
@@ -1134,15 +1134,6 @@ function buildPhuongOptions(lat, lon) {
   const near = nearestPhuongs(lat, lon, 3);
   if (near.length) populatePhuongSelectNear(near);
   else populatePhuongSelectFull();
-}
-// Đọc tọa độ hiện tại trong form, dựng lại select 3 gần nhất, tự chọn xã theo tọa độ
-function refreshPhuongByForm() {
-  const lat = parseFloat(document.getElementById('fLat').value);
-  const lon = parseFloat(document.getElementById('fLon').value);
-  buildPhuongOptions(lat, lon);
-  const name = phuongAtCoord(lat, lon);
-  setPhuongValue(name);   // mặc định chọn xã đúng tọa độ
-  return name;
 }
 // Gán giá trị phường vào select; nếu chưa có option tương ứng thì thêm vào (cảnh báo nếu là tên cũ)
 function setPhuongValue(val) {
@@ -1775,24 +1766,32 @@ async function loadDataFromSheet() {
   }
 }
 
+// Tách ô "Tên\nSĐT" thành { name, phone } — ô chuyên viên trong sheet PhuTrach gồm tên + SĐT trên 2 dòng
+function splitNamePhone(cell) {
+  const lines = String(cell || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  return { name: lines[0] || '', phone: lines.slice(1).join(' ').trim() };
+}
+// Đọc sheet PhuTrach. Cột: Phường/Xã | Địa bàn | Chuyên viên 1/2/3 (tên + SĐT) | CBKT
+//   - key map theo TÊN TRẦN (bỏ tiền tố Phường/Xã) để khớp p.phuong đã chuẩn hóa "Phường …"
+//   - khối trái biên bản = Chuyên viên 1 (tên + SĐT); khối phải = CBKT
 async function loadPhuTrach() {
   try {
     const res = await fetch(PHUTRACH_CSV_URL + '&t=' + Date.now());
     if (!res.ok) return;
     const csv = await res.text();
-    const wb = XLSX.read(csv, { type: 'string' });
-    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+    const rows = parseCsvToObjects(csv);   // parser riêng: giữ nguyên text (kể cả ô nhiều dòng), không bị XLSX méo
     phuTrachMap = {};
     if (!rows.length) return;
-    const sampleKeys = Object.keys(rows[0]);
-    const colPhuong = sampleKeys.find(k => normalizeKey(k).includes('phuong') || normalizeKey(k).includes('xa'));
-    const colChuyenVien = sampleKeys.find(k => normalizeKey(k).includes('chuyen vien') || normalizeKey(k).includes('chuyen  vien'));
-    const colPhuTrach = sampleKeys.find(k => normalizeKey(k).includes('phu trach'));
+    const keys = Object.keys(rows[0]);
+    const colPhuong = keys.find(k => { const n = normalizeKey(k); return n.includes('phuong') || n.includes('xa'); });
+    const colCV     = keys.find(k => normalizeKey(k).includes('chuyen vien'));  // "Chuyên viên 1" (cột đầu tiên)
+    const colCBKT   = keys.find(k => normalizeKey(k).includes('cbkt'));
     rows.forEach(r => {
       const phuong = colPhuong ? String(r[colPhuong] || '').trim() : '';
-      const chuyenVien = colChuyenVien ? String(r[colChuyenVien] || '').trim() : '';
-      const phuTrachKT = colPhuTrach ? String(r[colPhuTrach] || '').trim() : '';
-      if (phuong) phuTrachMap[normalizeKey(phuong)] = { chuyenVien, phuTrachKT };
+      if (!phuong) return;
+      const cv = colCV ? splitNamePhone(r[colCV]) : { name: '', phone: '' };
+      const cbkt = colCBKT ? String(r[colCBKT] || '').replace(/\s+/g, ' ').trim() : '';
+      phuTrachMap[bareKey(phuong)] = { chuyenVien: cv.name, chuyenVienPhone: cv.phone, cbkt };
     });
     console.log('[dentat] PhuTrach loaded:', Object.keys(phuTrachMap).length, 'phuong/xa');
   } catch(e) { console.warn('[dentat] loadPhuTrach error:', e.message); }
@@ -1907,7 +1906,7 @@ function closeInfoSheet() {
 function buildBienBanContent(idx) {
   if (idx == null || idx < 0 || idx >= loadedData.length) return null;
   const p = parseRow(loadedData[idx]);
-  const ky = phuTrachMap[normalizeKey(p.phuong || '')] || { chuyenVien: '', phuTrachKT: '' };
+  const ky = phuTrachMap[bareKey(p.phuong || '')] || { chuyenVien: '', chuyenVienPhone: '', cbkt: '' };
   const maSuCo = String(p.id || '').slice(-6) || '------';
   const today = new Date();
   const ngayInVN = 'ngày ' + today.getDate() + ' tháng ' + (today.getMonth()+1) + ' năm ' + today.getFullYear();
@@ -1919,7 +1918,9 @@ function buildBienBanContent(idx) {
     : '<em style="color:#777">(Không có ảnh đính kèm)</em>';
   const deXuat = 'Đề nghị cho duy tu, sửa chữa để khắc phục sự cố, bất cập trong công tác quản lý, bảo dưỡng hệ thống trên.'
     + (p.vatTuSua ? '<br>Vật tư: ' + p.vatTuSua : '');
-  const phuTrachKyRight = ky.phuTrachKT || p.nguoiSua || '';
+  const phuTrachKyRight = ky.cbkt || '';   // chỉ lấy từ cột CBKT, trống thì để trống (ký tay)
+  const chuyenVienKyLeft = ky.chuyenVien
+    + (ky.chuyenVienPhone ? '<br><span style="font-weight:normal;font-size:11pt">' + ky.chuyenVienPhone + '</span>' : '');
   const css = '* { box-sizing:border-box; margin:0; padding:0; }'
     + '\nbody { font-family:"Times New Roman",Times,serif; font-size:13pt; color:#000; background:#fff; }'
     + '\n.page { width:21cm; min-height:29.7cm; margin:10mm auto; padding:15mm 15mm 15mm 20mm; background:#fff; }'
@@ -1971,7 +1972,7 @@ function buildBienBanContent(idx) {
     + '<div class="kl">* Kết luận:</div>'
     + '<p style="font-size:12pt;line-height:1.8;text-align:justify">Các bên cùng thống nhất với các nội dung trên. Yêu cầu Nhà thầu nhanh chóng triển khai duy tu, sửa chữa để khắc phục sự cố, bất cập trong công tác quản lý, bảo dưỡng hệ thống chiếu sáng đô thị theo đúng tiến độ được quy định./.</p>'
     + '<div class="kb">'
-    + '<div class="kc"><div class="kt">TRUNG TÂM QUẢN LÝ GIAO THÔNG VÀ HẠ TẦNG KỸ THUẬT TP.HCM<br>Chuyên viên phụ trách địa bàn</div><span class="ks"></span><div class="kn">' + ky.chuyenVien + '</div></div>'
+    + '<div class="kc"><div class="kt">TRUNG TÂM QUẢN LÝ GIAO THÔNG VÀ HẠ TẦNG KỸ THUẬT TP.HCM<br>Chuyên viên phụ trách địa bàn</div><span class="ks"></span><div class="kn">' + chuyenVienKyLeft + '</div></div>'
     + '<div class="kc"><div class="kt">CÔNG TY CỔ PHẦN CHIẾU SÁNG CÔNG CỘNG TP.HCM<br>Phụ trách kỹ thuật thi công</div><span class="ks"></span><div class="kn">' + phuTrachKyRight + '</div></div>'
     + '</div></div>';
   return { maSuCo, css, pg1, pg2 };
@@ -2059,14 +2060,22 @@ async function deleteMarkerPopup() {
 
 // ── REVERSE GEOCODE ──
 async function reverseGeocode(lat, lon) {
+  // Cập nhật phường/xã theo tọa độ NGAY (đồng thời với đường) — dựa trên đèn gần nhất, không cần mạng
+  let pName = '';
+  if (Number.isFinite(lat) && Number.isFinite(lon)) {
+    buildPhuongOptions(lat, lon);
+    pName = phuongAtCoord(lat, lon);
+    setPhuongValue(pName);
+  }
   try {
     const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=vi`);
     const d = await r.json();
     const a = d.address || {};
     const duong = a.road || a.pedestrian || a.footway || a.path || '';
     if (duong) document.getElementById('fDuong').value = duong;
-    // Không tự điền phường từ OSM (tên hay lỗi thời sau sáp nhập) — người dùng chọn từ 3 gần nhất
-    if (duong) showToast('📍 Đã điền tên đường tự động');
+    // Không lấy phường từ OSM (tên hay lỗi thời sau sáp nhập) — phường lấy theo tọa độ ở trên
+    const msg = [duong && 'đường', pName && 'phường/xã'].filter(Boolean).join(' + ');
+    if (msg) showToast('📍 Đã cập nhật ' + msg + ' theo tọa độ');
   } catch(e) {}
 }
 
@@ -2082,9 +2091,7 @@ function setMarkerToCurrentLocation() {
       document.getElementById('fLon').value = lon.toFixed(6);
       document.getElementById('fCoordsText').textContent = `Tọa độ: ${lat.toFixed(6)}, ${lon.toFixed(6)} ±${Math.round(pos.coords.accuracy)}m`;
       if (btn) { btn.textContent = `📍 GPS: ±${Math.round(pos.coords.accuracy)}m`; btn.disabled = false; }
-      const pName = refreshPhuongByForm();   // chọn lại phường/xã theo tọa độ GPS mới
-      if (pName) showToast('📍 Đã chọn ' + pName + ' theo tọa độ');
-      reverseGeocode(lat, lon);
+      reverseGeocode(lat, lon);   // cập nhật đường + phường/xã theo tọa độ GPS mới
     },
     err => {
       showToast('Lỗi GPS: ' + err.message);
