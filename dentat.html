@@ -828,7 +828,7 @@
 <script>
 'use strict';
 // ── CONSTANTS ──
-const APP_VERSION = 'v2.2';
+const APP_VERSION = 'v2.3';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0YAMrbBpNdTL0cmE_1LdQ7SJzeUW0J0VHhWpv3WqW9LvLyBTP8YV2nPzuuR27pJTZ8g/exec';
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?output=csv';
 const PHUTRACH_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?gid=2043665350&single=true&output=csv';
@@ -1140,7 +1140,9 @@ function refreshPhuongByForm() {
   const lat = parseFloat(document.getElementById('fLat').value);
   const lon = parseFloat(document.getElementById('fLon').value);
   buildPhuongOptions(lat, lon);
-  setPhuongValue(phuongAtCoord(lat, lon));   // mặc định chọn xã đúng tọa độ
+  const name = phuongAtCoord(lat, lon);
+  setPhuongValue(name);   // mặc định chọn xã đúng tọa độ
+  return name;
 }
 // Gán giá trị phường vào select; nếu chưa có option tương ứng thì thêm vào (cảnh báo nếu là tên cũ)
 function setPhuongValue(val) {
@@ -2080,7 +2082,8 @@ function setMarkerToCurrentLocation() {
       document.getElementById('fLon').value = lon.toFixed(6);
       document.getElementById('fCoordsText').textContent = `Tọa độ: ${lat.toFixed(6)}, ${lon.toFixed(6)} ±${Math.round(pos.coords.accuracy)}m`;
       if (btn) { btn.textContent = `📍 GPS: ±${Math.round(pos.coords.accuracy)}m`; btn.disabled = false; }
-      refreshPhuongByForm();   // dựng lại 3 phường/xã gần nhất theo tọa độ mới
+      const pName = refreshPhuongByForm();   // chọn lại phường/xã theo tọa độ GPS mới
+      if (pName) showToast('📍 Đã chọn ' + pName + ' theo tọa độ');
       reverseGeocode(lat, lon);
     },
     err => {
