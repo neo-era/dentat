@@ -712,7 +712,7 @@
       <div id="fCoordsText" class="coords-info">Tọa độ: —</div>
       <div class="form-row" style="margin-top:10px">
         <div class="fg"><label>Đường</label><input id="fDuong" type="text" placeholder="Tên đường"></div>
-        <div class="fg"><label>Phường/Xã</label><input id="fPhuong" type="text" placeholder="Gõ để chọn phường/xã" list="phuongList" autocomplete="off"><datalist id="phuongList"></datalist></div>
+        <div class="fg"><label>Phường/Xã</label><select id="fPhuong"><option value="">— Chọn phường/xã —</option></select></div>
       </div>
 
       <div class="mpop-section-title">Sự cố</div>
@@ -1069,9 +1069,38 @@ function canonicalPhuong(name) {
   if (PHUONG_SET.has(s)) return s;  // đã đúng tên chính thức (giữ nguyên dấu, vd phân biệt Thanh An / Thạnh An)
   return PHUONG_LOOKUP[normalizeKey(s)] || PHUONG_LOOKUP[bareKey(s)] || s;
 }
-function populatePhuongDatalist() {
-  const dl = document.getElementById('phuongList');
-  if (dl) dl.innerHTML = PHUONG_LIST.map(n => `<option value="${n}"></option>`).join('');
+// Đổ 168 đơn vị vào <select id="fPhuong">, nhóm theo Phường / Xã / Đặc khu
+function populatePhuongSelect() {
+  const sel = document.getElementById('fPhuong');
+  if (!sel) return;
+  const groups = { 'Phường': [], 'Xã': [], 'Đặc khu': [] };
+  PHUONG_LIST.forEach(n => {
+    if (n.startsWith('Phường')) groups['Phường'].push(n);
+    else if (n.startsWith('Xã')) groups['Xã'].push(n);
+    else groups['Đặc khu'].push(n);
+  });
+  let html = '<option value="">— Chọn phường/xã —</option>';
+  for (const [g, arr] of Object.entries(groups)) {
+    if (!arr.length) continue;
+    html += `<optgroup label="${g} (${arr.length})">` + arr.map(n => `<option value="${n}">${n}</option>`).join('') + '</optgroup>';
+  }
+  sel.innerHTML = html;
+}
+// Gán giá trị phường vào select: khớp về tên chuẩn; nếu là tên cũ (vd từ GPS) không có trong
+// 168 thì thêm 1 option tạm để vẫn hiển thị & lưu được, người dùng có thể mở dropdown chọn lại.
+function setPhuongValue(val) {
+  const sel = document.getElementById('fPhuong');
+  if (!sel) return;
+  const old = sel.querySelector('option[data-temp]');
+  if (old) old.remove();
+  const c = canonicalPhuong(val);
+  if (!c) { sel.value = ''; return; }
+  if ([...sel.options].some(o => o.value === c)) { sel.value = c; return; }
+  const opt = document.createElement('option');
+  opt.value = c; opt.textContent = c + ' ⚠️ (tên cũ — nên chọn lại)';
+  opt.dataset.temp = '1';
+  sel.insertBefore(opt, sel.options[1] || null);
+  sel.value = c;
 }
 function getDistanceMeters(la1,lo1,la2,lo2) {
   const R=6371e3, r=x=>x*Math.PI/180;
@@ -1767,7 +1796,7 @@ function fillForm(row, lat, lon) {
     document.getElementById('fLat').value = Number.isFinite(p.lat) ? p.lat : '';
     document.getElementById('fLon').value = Number.isFinite(p.lon) ? p.lon : '';
     document.getElementById('fDuong').value = p.duong;
-    document.getElementById('fPhuong').value = p.phuong;
+    setPhuongValue(p.phuong);
     document.getElementById('fNgayPhatHien').value = p.ngayPhatHien || '';
     document.getElementById('fNguoiPhatHien').value = p.nguoiPhatHien;
     document.getElementById('fNgaySua').value = p.ngaySua || '';
@@ -1779,7 +1808,8 @@ function fillForm(row, lat, lon) {
     markerImages = (p.hinhAnh || '').split(';').map(s => s.trim()).filter(Boolean).map(s => ({ dataUrl: '', path: normalizeImagePath(s) }));
     renderImagePreview();
   } else {
-    ['fSoTru','fTenTu','fCongSuat','fDuong','fPhuong','fNguoiPhatHien','fNguoiSua','fVatTuSua','fGhiChu','fDienThoai'].forEach(id => document.getElementById(id).value = '');
+    ['fSoTru','fTenTu','fCongSuat','fDuong','fNguoiPhatHien','fNguoiSua','fVatTuSua','fGhiChu','fDienThoai'].forEach(id => document.getElementById(id).value = '');
+    setPhuongValue('');  // reset select (xóa option tạm nếu có)
     document.getElementById('fId').value = Date.now().toString();
     document.getElementById('fLoaiDen').value = '';
     document.getElementById('fTrangThai').value = '1';
@@ -1975,10 +2005,9 @@ async function reverseGeocode(lat, lon) {
     const a = d.address || {};
     const duong = a.road || a.pedestrian || a.footway || a.path || '';
     const phuongRaw = a.suburb || a.quarter || a.neighbourhood || a.village || a.county || '';
-    const phuong = canonicalPhuong(phuongRaw);  // khớp về 1 trong 168 tên chuẩn nếu được
     if (duong) document.getElementById('fDuong').value = duong;
-    if (phuong) document.getElementById('fPhuong').value = phuong;
-    if (duong || phuong) showToast('📍 Đã điền tên đường/phường tự động');
+    if (phuongRaw) setPhuongValue(phuongRaw);  // khớp về 1 trong 168 tên chuẩn nếu được
+    if (duong || phuongRaw) showToast('📍 Đã điền tên đường/phường tự động');
   } catch(e) {}
 }
 
@@ -2664,7 +2693,7 @@ window.onload = () => {
   const vBadge = document.getElementById('appVerBadge');
   if (vBadge) vBadge.textContent = APP_VERSION;
   initializeMap();
-  populatePhuongDatalist();
+  populatePhuongSelect();
   buildFilterChips();
   buildExtraFilters();
   buildLegend();
