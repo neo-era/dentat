@@ -1566,14 +1566,49 @@ function processFile(event) {
 }
 
 // ── LOAD DATA ──
+// Parser CSV tự viết — KHÔNG dùng XLSX cho Google Sheet, vì XLSX tự nhận diện kiểu
+// dữ liệu: đổi ô ngày "07/06/2026" (đảo ngày/tháng) và gộp số có dấu phẩy "11,218194"→11218194.
+// Parser này trả về MỌI ô dạng CHUỖI THÔ y hệt trên Sheet (hỗ trợ ô có ngoặc kép, dấu phẩy
+// bên trong, escape "" và xuống dòng trong ô). Tuân thủ RFC 4180.
+function parseCsvRows(text) {
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  const s = String(text).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (s[i + 1] === '"') { field += '"'; i++; }   // "" → escape thành 1 dấu "
+        else inQuotes = false;
+      } else field += c;
+    } else if (c === '"') { inQuotes = true; }
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+    else field += c;
+  }
+  if (field !== '' || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+function parseCsvToObjects(text) {
+  const rows = parseCsvRows(text);
+  if (!rows.length) return [];
+  const headers = rows[0].map(h => String(h).trim());
+  const out = [];
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i], obj = {};
+    headers.forEach((h, j) => { if (h) obj[h] = r[j] !== undefined ? r[j] : ''; });
+    out.push(obj);
+  }
+  return out;
+}
+
 async function loadDataFromSheet() {
   showToast('⏳ Đang tải dữ liệu từ Data...');
   try {
     const res = await fetch(GOOGLE_SHEET_CSV_URL);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const csv = await res.text();
-    const wb = XLSX.read(csv, { type: 'string' });
-    let data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+    let data = parseCsvToObjects(csv);
     data = data.filter(r => r && Object.values(r).some(v => v !== null && v !== ''));
     console.log('[dentat] Sheet headers:', data[0] ? Object.keys(data[0]) : 'no data');
     console.log('[dentat] Loaded rows:', data.length);
