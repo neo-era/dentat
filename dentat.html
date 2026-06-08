@@ -828,7 +828,7 @@
 <script>
 'use strict';
 // ── CONSTANTS ──
-const APP_VERSION = 'v2.0';
+const APP_VERSION = 'v2.2';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0YAMrbBpNdTL0cmE_1LdQ7SJzeUW0J0VHhWpv3WqW9LvLyBTP8YV2nPzuuR27pJTZ8g/exec';
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?output=csv';
 const PHUTRACH_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?gid=2043665350&single=true&output=csv';
@@ -1105,6 +1105,20 @@ function nearestPhuongs(lat, lon, k = 3) {
     .slice(0, k)
     .map(x => x.name);
 }
+// Xã/phường mà tọa độ rơi vào — suy ra từ cây đèn GẦN NHẤT (điểm liền kề gần như cùng đơn vị)
+function phuongAtCoord(lat, lon) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return '';
+  let best = '', bestD = Infinity;
+  loadedData.forEach(r => {
+    const p = parseRow(r);
+    const name = canonicalPhuong(p.phuong);
+    if (!PHUONG_SET.has(name)) return;
+    if (!Number.isFinite(p.lat) || !Number.isFinite(p.lon)) return;
+    const d = getDistanceMeters(lat, lon, p.lat, p.lon);
+    if (d < bestD) { bestD = d; best = name; }
+  });
+  return best;
+}
 // Đổ select chỉ với các phường/xã gần nhất + một mục "Xem tất cả" để mở rộng danh sách đầy đủ
 function populatePhuongSelectNear(near) {
   const sel = document.getElementById('fPhuong');
@@ -1121,13 +1135,12 @@ function buildPhuongOptions(lat, lon) {
   if (near.length) populatePhuongSelectNear(near);
   else populatePhuongSelectFull();
 }
-// Đọc tọa độ hiện tại trong form, dựng lại select 3 gần nhất, giữ lựa chọn đang có
+// Đọc tọa độ hiện tại trong form, dựng lại select 3 gần nhất, tự chọn xã theo tọa độ
 function refreshPhuongByForm() {
   const lat = parseFloat(document.getElementById('fLat').value);
   const lon = parseFloat(document.getElementById('fLon').value);
-  const cur = document.getElementById('fPhuong').value;
   buildPhuongOptions(lat, lon);
-  if (cur && cur !== '__all__') setPhuongValue(cur);
+  setPhuongValue(phuongAtCoord(lat, lon));   // mặc định chọn xã đúng tọa độ
 }
 // Gán giá trị phường vào select; nếu chưa có option tương ứng thì thêm vào (cảnh báo nếu là tên cũ)
 function setPhuongValue(val) {
@@ -1859,7 +1872,7 @@ function fillForm(row, lat, lon) {
     document.getElementById('fLat').value = lat ?? '';
     document.getElementById('fLon').value = lon ?? '';
     buildPhuongOptions(Number.isFinite(lat) ? lat : NaN, Number.isFinite(lon) ? lon : NaN);  // 3 phường/xã gần nhất
-    setPhuongValue('');  // chưa chọn (xóa option tạm nếu còn)
+    setPhuongValue(phuongAtCoord(Number.isFinite(lat) ? lat : NaN, Number.isFinite(lon) ? lon : NaN));  // mặc định chọn xã đúng tọa độ
     document.getElementById('fNgayPhatHien').value = todayStr();
     document.getElementById('fNgaySua').value = '';
     document.getElementById('fCoordsText').textContent = lat != null ? `Tọa độ: ${lat.toFixed(6)}, ${lon.toFixed(6)}` : 'Tọa độ: —';
