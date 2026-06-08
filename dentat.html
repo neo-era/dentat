@@ -1030,6 +1030,14 @@ function displayDate(val) {
   if (/^\d+(\.\d+)?$/.test(s) && parseFloat(s) > 40000) return excelSerialToViDate(parseFloat(s));
   return s;
 }
+// Parse tọa độ: Google Sheet (locale VN) lưu lat/lon với dấu PHẨY thập phân (vd "11,313631").
+// parseFloat sẽ cắt tại dấu phẩy → đổi phẩy thành chấm trước khi parse.
+function parseCoord(val) {
+  if (val === null || val === undefined) return NaN;
+  const s = String(val).trim().replace(/\s/g, '');
+  if (!s) return NaN;
+  return parseFloat(s.replace(',', '.'));
+}
 // Chuẩn hóa giá trị ngày: serial number → dd/mm/yyyy, hoặc giữ nguyên nếu đã là string
 function parseDate(val) {
   if (val === null || val === undefined || val === '') return '';
@@ -1153,8 +1161,8 @@ function parseRow(row) {
   const g = k => String(getVal(row, FIELDS[k], '') || '').trim();
   return {
     id: g('id'), soTru: g('soTru'), tenTu: g('tenTu'),
-    lat: parseFloat(getVal(row, FIELDS.latitude, null)),
-    lon: parseFloat(getVal(row, FIELDS.longitude, null)),
+    lat: parseCoord(getVal(row, FIELDS.latitude, null)),
+    lon: parseCoord(getVal(row, FIELDS.longitude, null)),
     loaiDen: g('loaiDen'), congSuat: g('congSuat'), trangThai: g('trangThai'),
     duong: g('duong'), phuong: g('phuong'),
     ngayPhatHien: displayDate(getVal(row, FIELDS.ngayPhatHien, '')),  // nguyên văn như Sheet; serial → dd/mm/yyyy
