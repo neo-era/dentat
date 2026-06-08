@@ -832,7 +832,7 @@
 <script>
 'use strict';
 // ── CONSTANTS ──
-const APP_VERSION = 'v3.3';
+const APP_VERSION = 'v3.4';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0YAMrbBpNdTL0cmE_1LdQ7SJzeUW0J0VHhWpv3WqW9LvLyBTP8YV2nPzuuR27pJTZ8g/exec';
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?output=csv';
 const PHUTRACH_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?gid=2043665350&single=true&output=csv';
@@ -1884,10 +1884,13 @@ function buildBienBanContent(idx) {
   const dotLine = '<div style="border-bottom:1px dotted #555;margin:6px 0;height:18px"></div>';
   const dl = function(n) { return Array(n).fill(dotLine).join(''); };
   const imgUrls = (p.hinhAnh || '').split(';').map(function(s){return s.trim();}).filter(Boolean).map(normalizeImagePath).filter(function(u){ return u && !u.startsWith('blob:'); });
-  // Mỗi ảnh nằm trên 1 trang riêng (có lề từ padding của .page), giới hạn vừa khổ A4 → luôn đảm bảo margin, không sát mép
+  // Mỗi ảnh 1 trang riêng (có lề từ padding .page). Trang ảnh ĐẦU mang luôn tiêu đề mục 8
+  // để ảnh đầu tiên nằm ngay dưới dòng "8 - Hình ảnh..."; các trang sau ghi (i/N).
   const imgPages = imgUrls.map(function(u, i){
-    return '<div class="page pb">'
-      + '<div class="imgpg-cap">Hình ảnh đính kèm (' + (i+1) + '/' + imgUrls.length + ') — Mã sự cố: ' + maSuCo + '</div>'
+    const head = (i === 0)
+      ? '<div class="sc" style="margin-top:0"><span class="st">8 - Hình ảnh sự cố, bất cập đính kèm:</span></div>'
+      : '<div class="imgpg-cap">Hình ảnh đính kèm (' + (i+1) + '/' + imgUrls.length + ') — Mã sự cố: ' + maSuCo + '</div>';
+    return '<div class="page pb">' + head
       + '<img class="bbimg" src="' + u + '" onerror="this.style.display=\'none\'">'
       + '</div>';
   }).join('');
@@ -1942,9 +1945,7 @@ function buildBienBanContent(idx) {
     + '<div style="margin-top:6px">- Yêu cầu tiến độ thực hiện: <span class="cb">&nbsp;</span> Xử lý gấp &nbsp;&nbsp;&nbsp; <span class="cb">&nbsp;</span> Bình thường</div>'
     + '<div style="margin-top:6px">- Ý kiến khác:</div>' + dl(2)
     + '</div></div>'
-    + '<div class="sc"><span class="st">8 - Hình ảnh sự cố, bất cập đính kèm:</span> '
-    + (imgUrls.length ? '(Có ' + imgUrls.length + ' ảnh đính kèm ở trang sau)' : '(Không có ảnh đính kèm)')
-    + '</div>'
+    + (imgUrls.length ? '' : '<div class="sc"><span class="st">8 - Hình ảnh sự cố, bất cập đính kèm:</span> (Không có ảnh đính kèm)</div>')
     + '</div>';
   const pg2 = '<div class="page pb">'
     + '<div class="kl">* Kết luận:</div>'
