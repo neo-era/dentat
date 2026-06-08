@@ -828,7 +828,7 @@
 <script>
 'use strict';
 // ── CONSTANTS ──
-const APP_VERSION = 'v2.5';
+const APP_VERSION = 'v2.6';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0YAMrbBpNdTL0cmE_1LdQ7SJzeUW0J0VHhWpv3WqW9LvLyBTP8YV2nPzuuR27pJTZ8g/exec';
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?output=csv';
 const PHUTRACH_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?gid=2043665350&single=true&output=csv';
@@ -1087,6 +1087,9 @@ function populatePhuongSelectFull() {
   }
   sel.innerHTML = html;
 }
+// Ngưỡng khoảng cách (m): tránh gán bừa phường khi tọa độ nằm xa toàn bộ dữ liệu đèn hiện có
+const PHUONG_NEAR_M = 8000;   // gợi ý 3 phường gần khi có TÂM phường trong 8km
+const PHUONG_PICK_M = 3000;   // chỉ tự chọn phường khi có ĐÈN trong 3km (đủ tin cậy cùng đơn vị)
 // Tính k phường/xã có TÂM gần tọa độ nhất — tâm = trung bình tọa độ các đèn hiện có trong phường đó
 function nearestPhuongs(lat, lon, k = 3) {
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) return [];
@@ -1101,6 +1104,7 @@ function nearestPhuongs(lat, lon, k = 3) {
   });
   return Object.entries(acc)
     .map(([name, v]) => ({ name, d: getDistanceMeters(lat, lon, v.sLat / v.n, v.sLon / v.n) }))
+    .filter(x => x.d <= PHUONG_NEAR_M)          // bỏ phường ở quá xa (vd dữ liệu vùng khác)
     .sort((a, b) => a.d - b.d)
     .slice(0, k)
     .map(x => x.name);
@@ -1117,7 +1121,7 @@ function phuongAtCoord(lat, lon) {
     const d = getDistanceMeters(lat, lon, p.lat, p.lon);
     if (d < bestD) { bestD = d; best = name; }
   });
-  return best;
+  return bestD <= PHUONG_PICK_M ? best : '';   // đèn gần nhất quá xa → không đoán, để người dùng tự chọn
 }
 // Đổ select chỉ với các phường/xã gần nhất + một mục "Xem tất cả" để mở rộng danh sách đầy đủ
 function populatePhuongSelectNear(near) {
