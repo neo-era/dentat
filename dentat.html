@@ -1022,6 +1022,14 @@ function excelSerialToViDate(serial) {
   const d = new Date(ms);
   return `${String(d.getUTCDate()).padStart(2,'0')}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${d.getUTCFullYear()}`;
 }
+// Hiển thị ngày: giữ NGUYÊN VĂN chuỗi như trên Google Sheet (không định dạng lại),
+// chỉ ngoại lệ khi ô bị lưu thành số serial (vd "46209.00034722222") thì đổi về dd/mm/yyyy.
+function displayDate(val) {
+  const s = String(val || '').trim();
+  if (!s) return '';
+  if (/^\d+(\.\d+)?$/.test(s) && parseFloat(s) > 40000) return excelSerialToViDate(parseFloat(s));
+  return s;
+}
 // Chuẩn hóa giá trị ngày: serial number → dd/mm/yyyy, hoặc giữ nguyên nếu đã là string
 function parseDate(val) {
   if (val === null || val === undefined || val === '') return '';
@@ -1149,9 +1157,9 @@ function parseRow(row) {
     lon: parseFloat(getVal(row, FIELDS.longitude, null)),
     loaiDen: g('loaiDen'), congSuat: g('congSuat'), trangThai: g('trangThai'),
     duong: g('duong'), phuong: g('phuong'),
-    ngayPhatHien: g('ngayPhatHien'),  // hiển thị nguyên văn như trên Google Sheet, không định dạng lại
+    ngayPhatHien: displayDate(getVal(row, FIELDS.ngayPhatHien, '')),  // nguyên văn như Sheet; serial → dd/mm/yyyy
     nguoiPhatHien: g('nguoiPhatHien'),
-    ngaySua: g('ngaySua'),            // hiển thị nguyên văn như trên Google Sheet, không định dạng lại
+    ngaySua: displayDate(getVal(row, FIELDS.ngaySua, '')),            // nguyên văn như Sheet; serial → dd/mm/yyyy
     nguoiSua: g('nguoiSua'),
     vatTuSua: g('vatTuSua'), hinhAnh: g('hinhAnh'), ghiChu: g('ghiChu'),
     vn2000x: g('vn2000x'), vn2000y: g('vn2000y'),
