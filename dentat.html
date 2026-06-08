@@ -832,7 +832,7 @@
 <script>
 'use strict';
 // ── CONSTANTS ──
-const APP_VERSION = 'v3.1';
+const APP_VERSION = 'v3.2';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0YAMrbBpNdTL0cmE_1LdQ7SJzeUW0J0VHhWpv3WqW9LvLyBTP8YV2nPzuuR27pJTZ8g/exec';
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?output=csv';
 const PHUTRACH_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?gid=2043665350&single=true&output=csv';
@@ -1884,9 +1884,13 @@ function buildBienBanContent(idx) {
   const dotLine = '<div style="border-bottom:1px dotted #555;margin:6px 0;height:18px"></div>';
   const dl = function(n) { return Array(n).fill(dotLine).join(''); };
   const imgUrls = (p.hinhAnh || '').split(';').map(function(s){return s.trim();}).filter(Boolean).map(normalizeImagePath).filter(function(u){ return u && !u.startsWith('blob:'); });
-  const imgsHtml = imgUrls.length
-    ? imgUrls.map(function(u){ return '<img src="' + u + '" style="max-width:100%;height:auto;margin:6px 0;display:block" onerror="this.style.display=\'none\'">'; }).join('')
-    : '<em style="color:#777">(Không có ảnh đính kèm)</em>';
+  // Mỗi ảnh nằm trên 1 trang riêng (có lề từ padding của .page), giới hạn vừa khổ A4 → luôn đảm bảo margin, không sát mép
+  const imgPages = imgUrls.map(function(u, i){
+    return '<div class="page pb">'
+      + '<div class="imgpg-cap">Hình ảnh đính kèm (' + (i+1) + '/' + imgUrls.length + ') — Mã sự cố: ' + maSuCo + '</div>'
+      + '<img class="bbimg" src="' + u + '" onerror="this.style.display=\'none\'">'
+      + '</div>';
+  }).join('');
   const deXuat = 'Đề nghị cho duy tu, sửa chữa để khắc phục sự cố, bất cập trong công tác quản lý, bảo dưỡng hệ thống trên.'
     + (p.vatTuSua ? '<br>Vật tư: ' + p.vatTuSua : '');
   const phuTrachKyRight = ky.cbkt || '';   // chỉ lấy từ cột CBKT, trống thì để trống (ký tay)
@@ -1913,7 +1917,9 @@ function buildBienBanContent(idx) {
     + '\n.kt { font-weight:bold; text-transform:uppercase; line-height:1.5; font-size:11pt; }'
     + '\n.ks { height:60px; display:block; }'
     + '\n.kn { font-weight:bold; }'
-    + '\n.kl { font-weight:bold; text-decoration:underline; margin-bottom:10px; }';
+    + '\n.kl { font-weight:bold; text-decoration:underline; margin-bottom:10px; }'
+    + '\n.imgpg-cap { font-weight:bold; font-size:12pt; margin-bottom:10px; }'
+    + '\n.bbimg { display:block; max-width:100%; max-height:23cm; height:auto; margin:0 auto; }';
   const pg1 = '<div class="page">'
     + '<table class="ht"><tr>'
     + '<td class="hl">CÔNG TY CỔ PHẦN<br>CHIẾU SÁNG CÔNG CỘNG TP.HCM<div class="ul"></div></td>'
@@ -1937,7 +1943,7 @@ function buildBienBanContent(idx) {
     + '<div style="margin-top:6px">- Ý kiến khác:</div>' + dl(2)
     + '</div></div>'
     + '<div class="sc"><span class="st">8 - Hình ảnh sự cố, bất cập đính kèm:</span>'
-    + '<div style="margin-top:8px">' + imgsHtml + '</div></div>'
+    + '<div class="sb">' + (imgUrls.length ? '(Có ' + imgUrls.length + ' ảnh đính kèm ở trang sau)' : '(Không có ảnh đính kèm)') + '</div></div>'
     + '</div>';
   const pg2 = '<div class="page pb">'
     + '<div class="kl">* Kết luận:</div>'
@@ -1946,7 +1952,7 @@ function buildBienBanContent(idx) {
     + '<div class="kc"><div class="kt">TRUNG TÂM QUẢN LÝ GIAO THÔNG VÀ HẠ TẦNG KỸ THUẬT TP.HCM<br>Chuyên viên phụ trách địa bàn</div><span class="ks"></span><div class="kn">' + chuyenVienKyLeft + '</div></div>'
     + '<div class="kc"><div class="kt">CÔNG TY CỔ PHẦN CHIẾU SÁNG CÔNG CỘNG TP.HCM<br>Phụ trách kỹ thuật thi công</div><span class="ks"></span><div class="kn">' + phuTrachKyRight + '</div></div>'
     + '</div></div>';
-  return { maSuCo, css, pg1, pg2 };
+  return { maSuCo, css, pg1, imgPages, pg2 };
 }
 
 function printBienBan(idx) {
@@ -1957,7 +1963,7 @@ function printBienBan(idx) {
     + '\n@media print { body{margin:0;background:#fff} .page{width:100%;margin:0;padding:15mm 15mm 15mm 20mm;min-height:unset;box-shadow:none} }';
   // Tên file PDF gợi ý = "BCSC" + mã ID sự cố (trình duyệt lấy theo <title>)
   const fileName = 'BCSC' + b.maSuCo;
-  const html = '<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><title>' + fileName + '</title><style>' + b.css + printCss + '</style></head><body>' + b.pg1 + b.pg2 + '</body></html>';
+  const html = '<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><title>' + fileName + '</title><style>' + b.css + printCss + '</style></head><body>' + b.pg1 + b.imgPages + b.pg2 + '</body></html>';
   try {
     // In qua iframe ẩn → mở thẳng hộp thoại in (chọn "Save as PDF"), không chuyển sang trang/tab khác
     const old = document.getElementById('pdfPrintFrame');
@@ -1978,7 +1984,15 @@ function printBienBan(idx) {
         if (!imgs[i].complete) { pending++; imgs[i].addEventListener('load', dec); imgs[i].addEventListener('error', dec); }
       }
       if (pending === 0) setTimeout(fire, 200);
-      win.addEventListener('afterprint', function () { document.title = prevTitle; setTimeout(function () { iframe.remove(); }, 200); });
+      // Sau khi bấm Save/Hủy trong hộp thoại in → khôi phục tiêu đề + gỡ iframe, trả về app ngay (không ở lại trang in)
+      const cleanup = function () {
+        document.title = prevTitle;
+        const f = document.getElementById('pdfPrintFrame');
+        if (f) setTimeout(function () { f.remove(); }, 150);
+        window.removeEventListener('afterprint', cleanup);
+      };
+      win.addEventListener('afterprint', cleanup);
+      window.addEventListener('afterprint', cleanup);
     };
     document.body.appendChild(iframe);
     iframe.srcdoc = html;
@@ -1996,15 +2010,15 @@ function downloadBienBanWord(idx) {
     + '\n.page { width:100%; margin:0; padding:0; }';
   const html = '<!DOCTYPE html>'
     + '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'
-    + '<head><meta charset="utf-8"><title>Bien ban su co ' + b.maSuCo + '</title>'
+    + '<head><meta charset="utf-8"><title>BCSC' + b.maSuCo + '</title>'
     + '<style>' + b.css + wordCss + '</style></head>'
-    + '<body><div class="Section1">' + b.pg1 + b.pg2 + '</div></body></html>';
+    + '<body><div class="Section1">' + b.pg1 + b.imgPages + b.pg2 + '</div></body></html>';
   try {
     const blob = new Blob(['﻿' + html], { type: 'application/msword' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'bien-ban-' + b.maSuCo + '.doc';
+    a.download = 'BCSC' + b.maSuCo + '.doc';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
