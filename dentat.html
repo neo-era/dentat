@@ -294,7 +294,7 @@
     }
     .mpop-header.dragging { cursor: grabbing; }
     .mpop-close { background: rgba(255,255,255,.15); border: none; color: #fff; width: 28px; height: 28px; border-radius: 7px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
-    .mpop-body { flex: 1; overflow-y: auto; padding: 16px; }
+    .mpop-body { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px; }
     .mpop-section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); margin: 14px 0 8px; border-top: 1px solid var(--border); padding-top: 12px; }
     .mpop-section-title:first-child { margin-top: 0; border-top: none; padding-top: 0; }
     .fg { margin-bottom: 10px; }
@@ -410,6 +410,10 @@
       .topbar-brand { display: none; }
       .nav-btn { padding: 5px 6px; min-width: 44px; font-size: 10px; }
       .nav-btn .ni { font-size: 18px; }
+      /* iOS tự phóng to khi focus ô nhập có cỡ chữ < 16px → gây nhảy/tràn ngang. Ép 16px để chặn. */
+      .fg input, .fg textarea, .fg select,
+      .rpt-row input, .rpt-row select,
+      .login-body .fg input { font-size: 16px; }
     }
 
     /* ── STATUS LIST PANEL ── */
@@ -828,7 +832,7 @@
 <script>
 'use strict';
 // ── CONSTANTS ──
-const APP_VERSION = 'v2.9';
+const APP_VERSION = 'v3.1';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0YAMrbBpNdTL0cmE_1LdQ7SJzeUW0J0VHhWpv3WqW9LvLyBTP8YV2nPzuuR27pJTZ8g/exec';
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?output=csv';
 const PHUTRACH_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?gid=2043665350&single=true&output=csv';
@@ -1881,7 +1885,7 @@ function buildBienBanContent(idx) {
   const dl = function(n) { return Array(n).fill(dotLine).join(''); };
   const imgUrls = (p.hinhAnh || '').split(';').map(function(s){return s.trim();}).filter(Boolean).map(normalizeImagePath).filter(function(u){ return u && !u.startsWith('blob:'); });
   const imgsHtml = imgUrls.length
-    ? imgUrls.map(function(u){ return '<img src="' + u + '" style="max-width:45%;max-height:220px;margin:4px;display:inline-block;vertical-align:top;object-fit:contain" onerror="this.style.display=\'none\'">'; }).join('')
+    ? imgUrls.map(function(u){ return '<img src="' + u + '" style="max-width:100%;height:auto;margin:6px 0;display:block" onerror="this.style.display=\'none\'">'; }).join('')
     : '<em style="color:#777">(Không có ảnh đính kèm)</em>';
   const deXuat = 'Đề nghị cho duy tu, sửa chữa để khắc phục sự cố, bất cập trong công tác quản lý, bảo dưỡng hệ thống trên.'
     + (p.vatTuSua ? '<br>Vật tư: ' + p.vatTuSua : '');
@@ -1951,7 +1955,9 @@ function printBienBan(idx) {
   // @page margin:0 → bỏ header/footer mặc định của trình duyệt (ngày giờ + tiêu đề). Lề chuyển vào .page bằng padding.
   const printCss = '\n@page { size:A4; margin:0; }'
     + '\n@media print { body{margin:0;background:#fff} .page{width:100%;margin:0;padding:15mm 15mm 15mm 20mm;min-height:unset;box-shadow:none} }';
-  const html = '<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><title>Bien ban su co ' + b.maSuCo + '</title><style>' + b.css + printCss + '</style></head><body>' + b.pg1 + b.pg2 + '</body></html>';
+  // Tên file PDF gợi ý = "BCSC" + mã ID sự cố (trình duyệt lấy theo <title>)
+  const fileName = 'BCSC' + b.maSuCo;
+  const html = '<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><title>' + fileName + '</title><style>' + b.css + printCss + '</style></head><body>' + b.pg1 + b.pg2 + '</body></html>';
   try {
     // In qua iframe ẩn → mở thẳng hộp thoại in (chọn "Save as PDF"), không chuyển sang trang/tab khác
     const old = document.getElementById('pdfPrintFrame');
@@ -1959,9 +1965,11 @@ function printBienBan(idx) {
     const iframe = document.createElement('iframe');
     iframe.id = 'pdfPrintFrame';
     iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+    const prevTitle = document.title;
     iframe.onload = function () {
       const win = iframe.contentWindow;
-      const fire = function () { try { win.focus(); win.print(); } catch(e) {} };
+      // đặt tiêu đề trang chính = tên file (một số trình duyệt lấy filename từ document.title của trang chủ)
+      const fire = function () { document.title = fileName; try { win.focus(); win.print(); } catch(e) {} };
       // chờ tất cả ảnh trong biên bản tải xong rồi mới in (tránh in thiếu ảnh)
       const imgs = win.document.images;
       let pending = 0;
@@ -1970,7 +1978,7 @@ function printBienBan(idx) {
         if (!imgs[i].complete) { pending++; imgs[i].addEventListener('load', dec); imgs[i].addEventListener('error', dec); }
       }
       if (pending === 0) setTimeout(fire, 200);
-      win.addEventListener('afterprint', function () { setTimeout(function () { iframe.remove(); }, 200); });
+      win.addEventListener('afterprint', function () { document.title = prevTitle; setTimeout(function () { iframe.remove(); }, 200); });
     };
     document.body.appendChild(iframe);
     iframe.srcdoc = html;
