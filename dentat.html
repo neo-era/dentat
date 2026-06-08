@@ -717,12 +717,12 @@
 
       <div class="mpop-section-title">Sự cố</div>
       <div class="form-row">
-        <div class="fg"><label>Ngày phát hiện</label><input id="fNgayPhatHien" type="date"></div>
+        <div class="fg"><label>Ngày phát hiện (tự động)</label><input id="fNgayPhatHien" type="text" readonly tabindex="-1" title="Tự lấy theo ngày tạo hồ sơ" style="background:#f1f5f9;color:#64748b;cursor:not-allowed"></div>
         <div class="fg"><label>Người phát hiện</label><input id="fNguoiPhatHien" type="text" placeholder="Tên người báo cáo"></div>
       </div>
       <div class="fg"><label>Số điện thoại người báo</label><input id="fDienThoai" type="tel" inputmode="tel" placeholder="VD: 0989725507"></div>
       <div class="form-row">
-        <div class="fg"><label>Ngày sửa xong</label><input id="fNgaySua" type="date"></div>
+        <div class="fg"><label>Ngày sửa xong</label><input id="fNgaySua" type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/yyyy" oninput="maskDate(this)"></div>
         <div class="fg"><label>Người sửa</label><input id="fNguoiSua" type="text" placeholder="Tên người sửa chữa"></div>
       </div>
       <div class="fg"><label>Vật tư sử dụng</label><textarea id="fVatTuSua" placeholder="VD: Bóng đèn LED 250W, dây cáp 5m..."></textarea></div>
@@ -1087,6 +1087,13 @@ function toInputDate(vn) {
   if (!d) return '';
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
+// Tự chèn dấu / khi người dùng gõ ngày vào ô text dạng dd/mm/yyyy
+function maskDate(el) {
+  let v = el.value.replace(/[^\d]/g, '').slice(0, 8);
+  if (v.length >= 5)      v = v.slice(0,2) + '/' + v.slice(2,4) + '/' + v.slice(4);
+  else if (v.length >= 3) v = v.slice(0,2) + '/' + v.slice(2);
+  el.value = v;
+}
 function fromInputDate(iso) {
   if (!iso) return '';
   const d = parseViDate(iso);
@@ -1142,9 +1149,9 @@ function parseRow(row) {
     lon: parseFloat(getVal(row, FIELDS.longitude, null)),
     loaiDen: g('loaiDen'), congSuat: g('congSuat'), trangThai: g('trangThai'),
     duong: g('duong'), phuong: g('phuong'),
-    ngayPhatHien: parseDate(getVal(row, FIELDS.ngayPhatHien, '')),
+    ngayPhatHien: g('ngayPhatHien'),  // hiển thị nguyên văn như trên Google Sheet, không định dạng lại
     nguoiPhatHien: g('nguoiPhatHien'),
-    ngaySua: parseDate(getVal(row, FIELDS.ngaySua, '')),
+    ngaySua: g('ngaySua'),            // hiển thị nguyên văn như trên Google Sheet, không định dạng lại
     nguoiSua: g('nguoiSua'),
     vatTuSua: g('vatTuSua'), hinhAnh: g('hinhAnh'), ghiChu: g('ghiChu'),
     vn2000x: g('vn2000x'), vn2000y: g('vn2000y'),
@@ -1639,9 +1646,9 @@ function fillForm(row, lat, lon) {
     document.getElementById('fLon').value = Number.isFinite(p.lon) ? p.lon : '';
     document.getElementById('fDuong').value = p.duong;
     document.getElementById('fPhuong').value = p.phuong;
-    document.getElementById('fNgayPhatHien').value = toInputDate(p.ngayPhatHien);
+    document.getElementById('fNgayPhatHien').value = p.ngayPhatHien || '';
     document.getElementById('fNguoiPhatHien').value = p.nguoiPhatHien;
-    document.getElementById('fNgaySua').value = toInputDate(p.ngaySua);
+    document.getElementById('fNgaySua').value = p.ngaySua || '';
     document.getElementById('fNguoiSua').value = p.nguoiSua;
     document.getElementById('fVatTuSua').value = p.vatTuSua;
     document.getElementById('fDienThoai').value = p.dienThoai || '';
@@ -1656,7 +1663,7 @@ function fillForm(row, lat, lon) {
     document.getElementById('fTrangThai').value = '1';
     document.getElementById('fLat').value = lat ?? '';
     document.getElementById('fLon').value = lon ?? '';
-    document.getElementById('fNgayPhatHien').value = new Date().toISOString().split('T')[0];
+    document.getElementById('fNgayPhatHien').value = todayStr();
     document.getElementById('fNgaySua').value = '';
     document.getElementById('fCoordsText').textContent = lat != null ? `Tọa độ: ${lat.toFixed(6)}, ${lon.toFixed(6)}` : 'Tọa độ: —';
     if (currentUser) document.getElementById('fNguoiPhatHien').value = currentUser.displayName || currentUser.username;
@@ -1896,11 +1903,15 @@ async function saveMarkerPopup() {
   if (!soTru) { showToast('Vui lòng nhập số trụ'); return; }
   if (!trangThai) { showToast('Vui lòng chọn trạng thái'); return; }
 
+  // Kiểm tra ngày sửa nhập tay theo dd/mm/yyyy (ngày phát hiện tự động, không cần kiểm)
+  const dsRaw = document.getElementById('fNgaySua').value.trim();
+  if (dsRaw && !parseViDate(dsRaw)) { showToast('Ngày sửa không hợp lệ (dd/mm/yyyy)'); return; }
+
   // Cảnh báo: trạng thái HƯ nhưng còn dữ liệu sửa chữa cũ
   const isBroken = ['1','2','5','7'].includes(trangThai);
   const ngaySuaEl = document.getElementById('fNgaySua');
   if (isBroken && ngaySuaEl.value) {
-    const ngaySuaDisplay = ngaySuaEl.value.split('-').reverse().join('/');
+    const ngaySuaDisplay = ngaySuaEl.value;
     const nguoiSua = document.getElementById('fNguoiSua').value.trim();
     const msg = `⚠️ Trạng thái là ĐÈN HƯ nhưng hồ sơ đang có thông tin sửa chữa:\n`
       + `• Ngày sửa: ${ngaySuaDisplay}${nguoiSua ? '\n• Người sửa: ' + nguoiSua : ''}\n\n`
@@ -1966,7 +1977,10 @@ async function saveMarkerPopup() {
     trangThai,
     duong: document.getElementById('fDuong').value.trim(),
     phuong: document.getElementById('fPhuong').value.trim(),
-    ngayPhatHien: fromInputDate(document.getElementById('fNgayPhatHien').value),
+    // Ngày phát hiện = ngày tạo đối tượng (tự động). Tạo mới → hôm nay; sửa → giữ nguyên ngày gốc.
+    ngayPhatHien: editingIndex !== null
+      ? (parseRow(loadedData[editingIndex]).ngayPhatHien || todayStr())
+      : todayStr(),
     nguoiPhatHien: document.getElementById('fNguoiPhatHien').value.trim(),
     ngaySua: fromInputDate(document.getElementById('fNgaySua').value),
     nguoiSua: document.getElementById('fNguoiSua').value.trim(),
