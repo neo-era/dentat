@@ -828,7 +828,7 @@
 <script>
 'use strict';
 // ── CONSTANTS ──
-const APP_VERSION = 'v2.6';
+const APP_VERSION = 'v2.7';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0YAMrbBpNdTL0cmE_1LdQ7SJzeUW0J0VHhWpv3WqW9LvLyBTP8YV2nPzuuR27pJTZ8g/exec';
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?output=csv';
 const PHUTRACH_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?gid=2043665350&single=true&output=csv';
@@ -1087,57 +1087,21 @@ function populatePhuongSelectFull() {
   }
   sel.innerHTML = html;
 }
-// Ngưỡng khoảng cách (m): tránh gán bừa phường khi tọa độ nằm xa toàn bộ dữ liệu đèn hiện có
-const PHUONG_NEAR_M = 8000;   // gợi ý 3 phường gần khi có TÂM phường trong 8km
-const PHUONG_PICK_M = 3000;   // chỉ tự chọn phường khi có ĐÈN trong 3km (đủ tin cậy cùng đơn vị)
-// Tính k phường/xã có TÂM gần tọa độ nhất — tâm = trung bình tọa độ các đèn hiện có trong phường đó
-function nearestPhuongs(lat, lon, k = 3) {
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return [];
-  const acc = {};
-  loadedData.forEach(r => {
-    const p = parseRow(r);
-    const name = canonicalPhuong(p.phuong);
-    if (!PHUONG_SET.has(name)) return;          // chỉ tính phường khớp danh sách chuẩn
-    if (!Number.isFinite(p.lat) || !Number.isFinite(p.lon)) return;
-    const a = acc[name] || (acc[name] = { sLat: 0, sLon: 0, n: 0 });
-    a.sLat += p.lat; a.sLon += p.lon; a.n++;
-  });
-  return Object.entries(acc)
-    .map(([name, v]) => ({ name, d: getDistanceMeters(lat, lon, v.sLat / v.n, v.sLon / v.n) }))
-    .filter(x => x.d <= PHUONG_NEAR_M)          // bỏ phường ở quá xa (vd dữ liệu vùng khác)
-    .sort((a, b) => a.d - b.d)
-    .slice(0, k)
-    .map(x => x.name);
-}
-// Xã/phường mà tọa độ rơi vào — suy ra từ cây đèn GẦN NHẤT (điểm liền kề gần như cùng đơn vị)
-function phuongAtCoord(lat, lon) {
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return '';
-  let best = '', bestD = Infinity;
-  loadedData.forEach(r => {
-    const p = parseRow(r);
-    const name = canonicalPhuong(p.phuong);
-    if (!PHUONG_SET.has(name)) return;
-    if (!Number.isFinite(p.lat) || !Number.isFinite(p.lon)) return;
-    const d = getDistanceMeters(lat, lon, p.lat, p.lon);
-    if (d < bestD) { bestD = d; best = name; }
-  });
-  return bestD <= PHUONG_PICK_M ? best : '';   // đèn gần nhất quá xa → không đoán, để người dùng tự chọn
-}
-// Đổ select chỉ với các phường/xã gần nhất + một mục "Xem tất cả" để mở rộng danh sách đầy đủ
-function populatePhuongSelectNear(near) {
-  const sel = document.getElementById('fPhuong');
-  if (!sel) return;
-  let html = '<option value="">— Chọn phường/xã —</option>';
-  html += `<optgroup label="📍 ${near.length} phường/xã gần nhất">`
-    + near.map(n => `<option value="${n}">${n}</option>`).join('') + '</optgroup>';
-  html += '<option value="__all__">🔎 Xem tất cả 168 phường/xã…</option>';
-  sel.innerHTML = html;
-}
-// Dựng option theo tọa độ: có tọa độ + có dữ liệu lân cận → chỉ 3 gần nhất; ngược lại → toàn bộ
-function buildPhuongOptions(lat, lon) {
-  const near = nearestPhuongs(lat, lon, 3);
-  if (near.length) populatePhuongSelectNear(near);
-  else populatePhuongSelectFull();
+// Lấy tên phường/xã chuẩn từ địa chỉ reverse-geocode của OSM (theo RANH GIỚI hành chính thật,
+// không phụ thuộc đèn lân cận). Tên chuẩn mới nằm ở trường khác nhau tùy khu vực:
+//   - HCMC lõi: thường ở `suburb` (vd "Phường Bình Trị Đông")
+//   - Bình Dương/BR-VT: thường ở `city_district` (vd "Phường Bến Cát", "Xã Bàu Bàng"), còn suburb là tên cũ
+// → duyệt các trường theo thứ tự, lấy cái đầu tiên map được vào 168.
+function phuongFromOsmAddress(a) {
+  if (!a) return '';
+  const cands = [a.city_district, a.suburb, a.quarter, a.neighbourhood, a.village, a.town, a.county, a.municipality];
+  for (const c of cands) {
+    if (!c) continue;
+    const canon = canonicalPhuong(c);
+    if (PHUONG_SET.has(canon)) return canon;   // ưu tiên trường map đúng vào danh sách chuẩn
+  }
+  const first = cands.find(Boolean);
+  return first ? canonicalPhuong(first) : '';  // không khớp 168 → trả tên trần (thành option tạm)
 }
 // Gán giá trị phường vào select; nếu chưa có option tương ứng thì thêm vào (cảnh báo nếu là tên cũ)
 function setPhuongValue(val) {
@@ -1857,7 +1821,7 @@ function fillForm(row, lat, lon) {
     document.getElementById('fLat').value = Number.isFinite(p.lat) ? p.lat : '';
     document.getElementById('fLon').value = Number.isFinite(p.lon) ? p.lon : '';
     document.getElementById('fDuong').value = p.duong;
-    buildPhuongOptions(p.lat, p.lon);   // 3 phường/xã gần nhất theo tọa độ đèn
+    populatePhuongSelectFull();         // danh sách đầy đủ 168 phường/xã
     setPhuongValue(p.phuong);           // chọn đúng phường hiện tại của đèn
     document.getElementById('fNgayPhatHien').value = p.ngayPhatHien || '';
     document.getElementById('fNguoiPhatHien').value = p.nguoiPhatHien;
@@ -1876,8 +1840,7 @@ function fillForm(row, lat, lon) {
     document.getElementById('fTrangThai').value = '1';
     document.getElementById('fLat').value = lat ?? '';
     document.getElementById('fLon').value = lon ?? '';
-    buildPhuongOptions(Number.isFinite(lat) ? lat : NaN, Number.isFinite(lon) ? lon : NaN);  // 3 phường/xã gần nhất
-    setPhuongValue(phuongAtCoord(Number.isFinite(lat) ? lat : NaN, Number.isFinite(lon) ? lon : NaN));  // mặc định chọn xã đúng tọa độ
+    populatePhuongSelectFull();   // danh sách đầy đủ; phường sẽ được điền từ OSM trong reverseGeocode
     document.getElementById('fNgayPhatHien').value = todayStr();
     document.getElementById('fNgaySua').value = '';
     document.getElementById('fCoordsText').textContent = lat != null ? `Tọa độ: ${lat.toFixed(6)}, ${lon.toFixed(6)}` : 'Tọa độ: —';
@@ -2064,20 +2027,15 @@ async function deleteMarkerPopup() {
 
 // ── REVERSE GEOCODE ──
 async function reverseGeocode(lat, lon) {
-  // Cập nhật phường/xã theo tọa độ NGAY (đồng thời với đường) — dựa trên đèn gần nhất, không cần mạng
-  let pName = '';
-  if (Number.isFinite(lat) && Number.isFinite(lon)) {
-    buildPhuongOptions(lat, lon);
-    pName = phuongAtCoord(lat, lon);
-    setPhuongValue(pName);
-  }
   try {
     const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=vi`);
     const d = await r.json();
     const a = d.address || {};
     const duong = a.road || a.pedestrian || a.footway || a.path || '';
     if (duong) document.getElementById('fDuong').value = duong;
-    // Không lấy phường từ OSM (tên hay lỗi thời sau sáp nhập) — phường lấy theo tọa độ ở trên
+    // Phường/xã lấy từ ranh giới hành chính của OSM — đồng thời với đường, bất kể có đèn gần hay không
+    const pName = phuongFromOsmAddress(a);
+    if (pName) setPhuongValue(pName);
     const msg = [duong && 'đường', pName && 'phường/xã'].filter(Boolean).join(' + ');
     if (msg) showToast('📍 Đã cập nhật ' + msg + ' theo tọa độ');
   } catch(e) {}
@@ -2766,9 +2724,6 @@ window.onload = () => {
   if (vBadge) vBadge.textContent = APP_VERSION;
   initializeMap();
   populatePhuongSelectFull();
-  document.getElementById('fPhuong').addEventListener('change', function () {
-    if (this.value === '__all__') { populatePhuongSelectFull(); this.value = ''; this.focus(); }
-  });
   buildFilterChips();
   buildExtraFilters();
   buildLegend();
