@@ -837,7 +837,7 @@
 <script>
 'use strict';
 // ── CONSTANTS ──
-const APP_VERSION = 'v3.5';
+const APP_VERSION = 'v3.6';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0YAMrbBpNdTL0cmE_1LdQ7SJzeUW0J0VHhWpv3WqW9LvLyBTP8YV2nPzuuR27pJTZ8g/exec';
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?output=csv';
 const PHUTRACH_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?gid=2043665350&single=true&output=csv';
@@ -2770,6 +2770,7 @@ if ('serviceWorker' in navigator) {
 window.onload = () => {
   const vBadge = document.getElementById('appVerBadge');
   if (vBadge) vBadge.textContent = APP_VERSION;
+  document.title = 'Quản Lý Đèn Tắt CSCC ' + APP_VERSION;   // hiển thị version ở tiêu đề trang/tab/PWA
   initializeMap();
   populatePhuongSelectFull();
   buildFilterChips();
