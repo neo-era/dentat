@@ -357,6 +357,11 @@
     .rpt-row input, .rpt-row select { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 9px; font-size: 13px; font-family: inherit; outline: none; background: var(--white); color: var(--text); box-sizing: border-box; }
     .rpt-row input:focus, .rpt-row select:focus { border-color: var(--orange); }
     .rpt-row select { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+    .date-field { position: relative; display: flex; align-items: stretch; }
+    .date-field input[type="text"] { flex: 1; min-width: 0; }
+    .date-pick { position: absolute; left: 8px; bottom: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+    .date-btn { flex-shrink: 0; margin-left: 6px; padding: 0 12px; border: 1.5px solid var(--border); border-radius: 9px; background: var(--white); cursor: pointer; font-size: 16px; }
+    .date-btn:active { background: var(--bg); }
     .rpt-tt-chips { display: flex; flex-wrap: wrap; gap: 6px; }
     .rpt-tt-chip { display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border: 1.5px solid var(--border); border-radius: 999px; font-size: 12px; cursor: pointer; user-select: none; background: var(--white); color: var(--text); }
     .rpt-tt-chip input { display: none; }
@@ -764,8 +769,8 @@
     <h3>📊 Báo cáo đèn hư hàng ngày</h3>
     <p>Chọn khoảng thời gian và xuất danh sách đèn sự cố</p>
     <div class="rpt-row">
-      <div><label>Từ ngày</label><input type="text" id="rptFrom" placeholder="DD/MM/YYYY" inputmode="numeric" maxlength="10"></div>
-      <div><label>Đến ngày</label><input type="text" id="rptTo" placeholder="DD/MM/YYYY" inputmode="numeric" maxlength="10"></div>
+      <div><label>Từ ngày</label><div class="date-field"><input type="text" id="rptFrom" placeholder="DD/MM/YYYY" inputmode="numeric" maxlength="10" oninput="maskDate(this)"><input type="date" id="rptFromPick" class="date-pick" onchange="pickDate('rptFrom', this)"><button type="button" class="date-btn" onclick="openDatePick('rptFromPick','rptFrom')" title="Chọn từ lịch">📅</button></div></div>
+      <div><label>Đến ngày</label><div class="date-field"><input type="text" id="rptTo" placeholder="DD/MM/YYYY" inputmode="numeric" maxlength="10" oninput="maskDate(this)"><input type="date" id="rptToPick" class="date-pick" onchange="pickDate('rptTo', this)"><button type="button" class="date-btn" onclick="openDatePick('rptToPick','rptTo')" title="Chọn từ lịch">📅</button></div></div>
     </div>
     <div class="rpt-row">
       <div><label>Phường / Xã</label><select id="rptPhuong"><option value="">Tất cả phường</option></select></div>
@@ -837,7 +842,7 @@
 <script>
 'use strict';
 // ── CONSTANTS ──
-const APP_VERSION = 'v3.6';
+const APP_VERSION = 'v3.7';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0YAMrbBpNdTL0cmE_1LdQ7SJzeUW0J0VHhWpv3WqW9LvLyBTP8YV2nPzuuR27pJTZ8g/exec';
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?output=csv';
 const PHUTRACH_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?gid=2043665350&single=true&output=csv';
@@ -2546,6 +2551,17 @@ function getSelectedTrangThai() {
   return [...el.querySelectorAll('input:checked')].map(i => i.value);
 }
 
+// Mở lịch native cho ô ngày dạng text (giữ hiển thị DD/MM/YYYY)
+function openDatePick(pickId, textId) {
+  const pick = document.getElementById(pickId);
+  pick.value = toInputDate(document.getElementById(textId).value) || '';   // đồng bộ giá trị hiện có
+  if (pick.showPicker) { try { pick.showPicker(); return; } catch(e) {} }
+  pick.focus(); pick.click();   // fallback
+}
+function pickDate(textId, pick) {
+  const vn = fromInputDate(pick.value);
+  if (vn) { document.getElementById(textId).value = vn; updateReportPreview(); }
+}
 function openReportModal() {
   if (isDemoUser()) { denyDemo(); return; }
   const n = new Date();
