@@ -842,7 +842,7 @@
 <script>
 'use strict';
 // ── CONSTANTS ──
-const APP_VERSION = 'v3.7';
+const APP_VERSION = 'v3.8';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0YAMrbBpNdTL0cmE_1LdQ7SJzeUW0J0VHhWpv3WqW9LvLyBTP8YV2nPzuuR27pJTZ8g/exec';
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?output=csv';
 const PHUTRACH_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?gid=2043665350&single=true&output=csv';
@@ -1904,6 +1904,9 @@ function buildBienBanContent(idx) {
       + '<img class="bbimg" src="' + u + '" onerror="this.style.display=\'none\'">'
       + '</div>';
   }).join('');
+  // Mục 5 = "nhãn trạng thái: ghi chú"
+  const ttLabel5 = (STATUS_CONFIG[effectiveStatus(p)] || {}).label || '';
+  const hienTrang5 = [ttLabel5, p.ghiChu].filter(Boolean).join(': ');
   const deXuat = 'Đề nghị cho duy tu, sửa chữa để khắc phục sự cố, bất cập trong công tác quản lý, bảo dưỡng hệ thống trên.'
     + (p.vatTuSua ? '<br>Vật tư: ' + p.vatTuSua : '');
   const phuTrachKyRight = ky.cbkt || '';   // chỉ lấy từ cột CBKT, trống thì để trống (ký tay)
@@ -1946,7 +1949,7 @@ function buildBienBanContent(idx) {
     + '<div class="sb">- Tủ điều khiển: ' + (p.tenTu || '') + '<br>- Đường: ' + (p.duong || '') + '<br>- Phường: ' + (p.phuong || '') + '</div></div>'
     + '<div class="sc"><span class="st">4 - Ngày giờ:</span> ' + (p.ngayPhatHien || '') + '</div>'
     + '<div class="sc"><span class="st">5 - Ghi nhận hiện trạng sự cố, bất cập:</span>'
-    + '<div class="sb">' + (p.ghiChu || '') + '</div>' + dl(4) + '</div>'
+    + '<div class="sb">' + hienTrang5 + '</div>' + dl(4) + '</div>'
     + '<div class="sc"><span class="st">6 - Đề xuất biện pháp khắc phục (quy mô, khối lượng dự kiến thực hiện):</span>'
     + '<div class="sb">' + deXuat + '</div>' + dl(3) + '</div>'
     + '<div class="sc"><span class="st">7 - Ý kiến của cán bộ Giám sát:</span>'
