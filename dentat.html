@@ -842,7 +842,7 @@
 <script>
 'use strict';
 // ── CONSTANTS ──
-const APP_VERSION = 'v3.8';
+const APP_VERSION = 'v3.9';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0YAMrbBpNdTL0cmE_1LdQ7SJzeUW0J0VHhWpv3WqW9LvLyBTP8YV2nPzuuR27pJTZ8g/exec';
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?output=csv';
 const PHUTRACH_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?gid=2043665350&single=true&output=csv';
@@ -1224,6 +1224,16 @@ function effectiveStatus(p) {
   }
   return String(p.trangThai || '');
 }
+// Các nhóm thống kê 1 đèn thuộc về (ĐẾM CHỒNG, không loại trừ): mã gốc + thêm '5' nếu là
+// mã 1/7 quá 10 ngày. Dùng cho đếm chip, danh sách khi bấm chip, bộ lọc và Excel.
+// → "LED hư"(1)/"HPS hư"(7) = toàn bộ mã gốc; ">10 ngày"(5) = tập con 1/7 quá 10 ngày.
+// (Màu marker vẫn theo effectiveStatus — mã 1/7 quá 10 ngày hiển thị tím.)
+function statusGroups(p) {
+  const raw = String(p.trangThai || '');
+  const g = [raw];
+  if (['1','7'].includes(raw)) { const d = daysBetween(p.ngayPhatHien); if (d !== null && d > 10) g.push('5'); }
+  return g;
+}
 function todayStr() {
   const n = new Date();
   return `${String(n.getDate()).padStart(2,'0')}/${String(n.getMonth()+1).padStart(2,'0')}/${n.getFullYear()}`;
@@ -1529,7 +1539,7 @@ function applyFilter() {
   markers.forEach(entry => {
     if (!entry) return;
     const p = parseRow(entry.row);
-    const hiddenByStatus = hiddenFilters.has(effectiveStatus(p));
+    const hiddenByStatus = statusGroups(p).some(g => hiddenFilters.has(g));
     const hiddenByLoai = filterLoaiDen !== '' && (p.loaiDen || '').toUpperCase() !== filterLoaiDen;
     const hiddenByNguoi = filterNguoi !== '' && normalizeText(p.nguoiPhatHien || '') !== normalizeText(filterNguoi);
     const hidden = hiddenByStatus || hiddenByLoai || hiddenByNguoi;
@@ -1544,20 +1554,19 @@ function applyFilter() {
 }
 function updateStats() {
   const counts = {}; Object.keys(STATUS_CONFIG).forEach(k => counts[k] = 0);
-  loadedData.forEach(row => { const p = parseRow(row); const s = effectiveStatus(p); if (counts[s] !== undefined) counts[s]++; });
+  loadedData.forEach(row => { statusGroups(parseRow(row)).forEach(s => { if (counts[s] !== undefined) counts[s]++; }); });
   Object.keys(counts).forEach(s => {
     const el = document.getElementById(`cnt-${s}`); if (el) el.textContent = counts[s];
     const chip = document.getElementById(`chip-${s}`);
     if (chip) chip.classList.toggle('dimmed', hiddenFilters.has(s));
   });
-  const total = Object.values(counts).reduce((a,b)=>a+b,0);
-  document.getElementById('statTotal').textContent = `Tổng: ${total}`;
+  document.getElementById('statTotal').textContent = `Tổng: ${loadedData.length}`;   // số đèn thật (chip đếm chồng nên không cộng dồn)
 }
 function buildFilterChips() {
   const sel = document.getElementById('filterStatusSelect');
   if (!sel) return;
   const counts = {}; Object.keys(STATUS_CONFIG).forEach(k => counts[k] = 0);
-  loadedData.forEach(row => { const p = parseRow(row); const s = effectiveStatus(p); if (counts[s] !== undefined) counts[s]++; });
+  loadedData.forEach(row => { statusGroups(parseRow(row)).forEach(s => { if (counts[s] !== undefined) counts[s]++; }); });
   sel.innerHTML = '';
   Object.entries(STATUS_CONFIG).forEach(([s, cfg]) => {
     const opt = document.createElement('option');
@@ -1618,7 +1627,7 @@ function openStatusList(status) {
   document.getElementById('slDot').style.background = cfg.color;
   document.getElementById('slTitle').textContent = cfg.label;
 
-  const items = markers.filter(Boolean).filter(e => effectiveStatus(parseRow(e.row)) === String(status));
+  const items = markers.filter(Boolean).filter(e => statusGroups(parseRow(e.row)).includes(String(status)));
   document.getElementById('slCnt').textContent = `${items.length} đèn`;
 
   const body = document.getElementById('slBody');
@@ -2593,14 +2602,14 @@ function getReportRows() {
     if (!d || d < fromD || d > toD) return false;
     if (fPhuong && canonicalPhuong(p.phuong) !== fPhuong) return false;
     if (fNguoi  && (p.nguoiPhatHien||'').trim().toLowerCase() !== fNguoi) return false;
-    if (fTrangThai.length && !fTrangThai.includes(String(p.trangThai||'').trim())) return false;
+    if (fTrangThai.length && !statusGroups(p).some(g => fTrangThai.includes(g))) return false;
     return true;
   });
 }
 function updateReportPreview() {
   const rows = getReportRows();
   const counts = {}; Object.keys(STATUS_CONFIG).forEach(k => counts[k] = 0);
-  rows.forEach(r => { const p = parseRow(r); const s = String(p.trangThai||''); if (counts[s] !== undefined) counts[s]++; });
+  rows.forEach(r => { statusGroups(parseRow(r)).forEach(s => { if (counts[s] !== undefined) counts[s]++; }); });
   const container = document.getElementById('rptPreview');
   container.innerHTML = `<div style="font-size:13px;font-weight:700;margin-bottom:8px">Tổng: ${rows.length} đèn</div>` +
     Object.entries(STATUS_CONFIG).filter(([s])=>counts[s]>0).map(([s,cfg])=>
@@ -2630,7 +2639,7 @@ function exportReport() {
     // đếm theo trạng thái
     const counts = {};
     Object.keys(STATUS_CONFIG).forEach(k => counts[k] = 0);
-    rows.forEach(r => { const p = parseRow(r); const s = String(p.trangThai||''); if (counts[s] !== undefined) counts[s]++; });
+    rows.forEach(r => { statusGroups(parseRow(r)).forEach(s => { if (counts[s] !== undefined) counts[s]++; }); });
     const totalFixed = rows.filter(r => { const p = parseRow(r); return p.ngaySua && String(p.ngaySua).trim(); }).length;
 
     const NC   = 15; // số cột
