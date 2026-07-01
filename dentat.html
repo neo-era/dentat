@@ -357,6 +357,11 @@
     .rpt-row input, .rpt-row select { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 9px; font-size: 13px; font-family: inherit; outline: none; background: var(--white); color: var(--text); box-sizing: border-box; }
     .rpt-row input:focus, .rpt-row select:focus { border-color: var(--orange); }
     .rpt-row select { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+    .rpt-tt-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .rpt-tt-chip { display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border: 1.5px solid var(--border); border-radius: 999px; font-size: 12px; cursor: pointer; user-select: none; background: var(--white); color: var(--text); }
+    .rpt-tt-chip input { display: none; }
+    .rpt-tt-chip .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .rpt-tt-chip.on { border-color: var(--orange); background: #fff7ed; font-weight: 600; }
     .rpt-preview { background: var(--bg); border-radius: 10px; padding: 12px 14px; margin: 10px 0; }
     .rpt-preview-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; padding: 3px 0; }
     .rpt-preview-row .dot { width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
@@ -767,7 +772,7 @@
       <div><label>Người phát hiện</label><select id="rptNguoiPH"><option value="">Tất cả</option></select></div>
     </div>
     <div class="rpt-row" style="grid-template-columns:1fr">
-      <div><label>Loại sự cố / Trạng thái</label><select id="rptTrangThai"><option value="">Tất cả trạng thái</option></select></div>
+      <div><label>Loại sự cố / Trạng thái <span style="font-weight:400;text-transform:none">(chọn nhiều — bỏ trống = tất cả)</span></label><div id="rptTT" class="rpt-tt-chips"></div></div>
     </div>
     <div class="rpt-preview" id="rptPreview">
       <div style="font-size:12px;color:var(--text-muted);text-align:center">Chọn ngày để xem tóm tắt</div>
@@ -832,7 +837,7 @@
 <script>
 'use strict';
 // ── CONSTANTS ──
-const APP_VERSION = 'v3.4';
+const APP_VERSION = 'v3.5';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0YAMrbBpNdTL0cmE_1LdQ7SJzeUW0J0VHhWpv3WqW9LvLyBTP8YV2nPzuuR27pJTZ8g/exec';
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?output=csv';
 const PHUTRACH_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?gid=2043665350&single=true&output=csv';
@@ -2524,12 +2529,21 @@ function populateReportFilters() {
   };
   sel('rptPhuong', phuongs, 'Tất cả phường');
   sel('rptNguoiPH', nguois,  'Tất cả');
-  const ttEl = document.getElementById('rptTrangThai');
+  const ttEl = document.getElementById('rptTT');
   if (ttEl) {
-    const cur = ttEl.value;
-    ttEl.innerHTML = '<option value="">Tất cả trạng thái</option>' +
-      Object.entries(STATUS_CONFIG).map(([s,cfg]) => `<option value="${s}"${s===cur?' selected':''}>${cfg.emoji} ${cfg.label}</option>`).join('');
+    ttEl.innerHTML = Object.entries(STATUS_CONFIG).map(([s,cfg]) =>
+      `<label class="rpt-tt-chip" title="${cfg.label}"><input type="checkbox" value="${s}"><span class="dot" style="background:${cfg.color}"></span>${cfg.label}</label>`).join('');
+    ttEl.querySelectorAll('input').forEach(cb => cb.addEventListener('change', function () {
+      this.closest('.rpt-tt-chip').classList.toggle('on', this.checked);
+      updateReportPreview();
+    }));
   }
+}
+// Các mã trạng thái đang được tick trong bộ lọc báo cáo ([] = tất cả)
+function getSelectedTrangThai() {
+  const el = document.getElementById('rptTT');
+  if (!el) return [];
+  return [...el.querySelectorAll('input:checked')].map(i => i.value);
 }
 
 function openReportModal() {
@@ -2552,7 +2566,7 @@ function getReportRows() {
   toD.setHours(23,59,59,999);
   const fPhuong = (document.getElementById('rptPhuong')?.value  || '').trim();
   const fNguoi  = (document.getElementById('rptNguoiPH')?.value || '').trim().toLowerCase();
-  const fTrangThai = (document.getElementById('rptTrangThai')?.value || '').trim();
+  const fTrangThai = getSelectedTrangThai();   // [] = tất cả trạng thái
   return loadedData.filter(row => {
     const p = parseRow(row);
     if (!p.ngayPhatHien) return false;
@@ -2560,7 +2574,7 @@ function getReportRows() {
     if (!d || d < fromD || d > toD) return false;
     if (fPhuong && canonicalPhuong(p.phuong) !== fPhuong) return false;
     if (fNguoi  && (p.nguoiPhatHien||'').trim().toLowerCase() !== fNguoi) return false;
-    if (fTrangThai && String(p.trangThai||'').trim() !== fTrangThai) return false;
+    if (fTrangThai.length && !fTrangThai.includes(String(p.trangThai||'').trim())) return false;
     return true;
   });
 }
@@ -2575,7 +2589,7 @@ function updateReportPreview() {
     ).join('') + (rows.length === 0 ? '<div style="font-size:12px;color:var(--text-muted);text-align:center">Không có dữ liệu trong khoảng này</div>' : '');
 }
 document.addEventListener('DOMContentLoaded', () => {
-  ['rptFrom','rptTo','rptPhuong','rptNguoiPH','rptTrangThai'].forEach(id => {
+  ['rptFrom','rptTo','rptPhuong','rptNguoiPH'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('change', updateReportPreview);
   });
@@ -2591,8 +2605,7 @@ function exportReport() {
     const toFile   = toVal.replace(/\//g, '-');
     const fPhuong  = (document.getElementById('rptPhuong')?.value  || '').trim();
     const fNguoi   = (document.getElementById('rptNguoiPH')?.value || '').trim();
-    const fTrangThai = (document.getElementById('rptTrangThai')?.value || '').trim();
-    const ttLabel = fTrangThai && STATUS_CONFIG[fTrangThai] ? STATUS_CONFIG[fTrangThai].label : '';
+    const ttLabel = getSelectedTrangThai().map(s => STATUS_CONFIG[s] && STATUS_CONFIG[s].label).filter(Boolean).join(', ');
     const filterTxt = [fPhuong && ('Phường: ' + fPhuong), fNguoi && ('Người PH: ' + fNguoi), ttLabel && ('Trạng thái: ' + ttLabel)].filter(Boolean).join(' | ');
 
     // đếm theo trạng thái
