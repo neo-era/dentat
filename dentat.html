@@ -842,7 +842,7 @@
 <script>
 'use strict';
 // ── CONSTANTS ──
-const APP_VERSION = 'v3.9';
+const APP_VERSION = 'v4.0';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0YAMrbBpNdTL0cmE_1LdQ7SJzeUW0J0VHhWpv3WqW9LvLyBTP8YV2nPzuuR27pJTZ8g/exec';
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?output=csv';
 const PHUTRACH_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?gid=2043665350&single=true&output=csv';
@@ -1987,7 +1987,9 @@ function printBienBan(idx) {
     + '\n@media print { body{margin:0;background:#fff} .page{width:100%;margin:0;padding:15mm 15mm 15mm 20mm;min-height:unset;box-shadow:none} }';
   // Tên file PDF gợi ý = "BCSC" + mã ID sự cố (trình duyệt lấy theo <title>)
   const fileName = 'BCSC' + b.maSuCo;
-  const html = '<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><title>' + fileName + '</title><style>' + b.css + printCss + '</style></head><body>' + b.pg1 + b.imgPages + b.pg2 + '</body></html>';
+  // Escape dấu / trong các thẻ đóng body/html để source KHÔNG chứa chuỗi đóng body literal,
+  // nhờ đó VS Code Live Server không chèn script auto-reload nhầm vào giữa chuỗi (runtime không đổi).
+  const html = '<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><title>' + fileName + '<\/title><style>' + b.css + printCss + '<\/style><\/head><body>' + b.pg1 + b.imgPages + b.pg2 + '<\/body><\/html>';
   try {
     // In qua iframe ẩn → mở thẳng hộp thoại in (chọn "Save as PDF"), không chuyển sang trang/tab khác
     const old = document.getElementById('pdfPrintFrame');
@@ -2032,11 +2034,12 @@ function downloadBienBanWord(idx) {
     + '\n.kc { display:table-cell; width:46%; text-align:center; vertical-align:top; padding:0 2%; }'
     + '\n.ks { display:block; height:60px; }'
     + '\n.page { width:100%; margin:0; padding:0; }';
+  // Escape thẻ đóng (xem chú thích ở printBienBan) để Live Server không chèn nhầm vào chuỗi.
   const html = '<!DOCTYPE html>'
     + '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'
-    + '<head><meta charset="utf-8"><title>BCSC' + b.maSuCo + '</title>'
-    + '<style>' + b.css + wordCss + '</style></head>'
-    + '<body><div class="Section1">' + b.pg1 + b.imgPages + b.pg2 + '</div></body></html>';
+    + '<head><meta charset="utf-8"><title>BCSC' + b.maSuCo + '<\/title>'
+    + '<style>' + b.css + wordCss + '<\/style><\/head>'
+    + '<body><div class="Section1">' + b.pg1 + b.imgPages + b.pg2 + '<\/div><\/body><\/html>';
   try {
     const blob = new Blob(['﻿' + html], { type: 'application/msword' });
     const url = URL.createObjectURL(blob);
