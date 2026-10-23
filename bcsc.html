@@ -286,7 +286,27 @@
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0YAMrbBpNdTL0cmE_1LdQ7SJzeUW0J0VHhWpv3WqW9LvLyBTP8YV2nPzuuR27pJTZ8g/exec';
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?output=csv';
 const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/neo-era/dentat/main/';
-const MAX_IMG_LEN = 32767;
+// Ảnh lưu Google Drive (không nhét base64 vào Sheet) → cho phép ảnh nét hơn
+const MAX_IMG_LEN = 700000;
+const IMG_MAX_DIM = 1600;
+// ⚠️ Đặt TRÙNG Script Property APP_SECRET của GAS (giống dentat.html)
+const APP_SECRET = '';
+
+// POST text/plain → không kích hoạt preflight CORS nên ĐỌC được kết quả (khác no-cors)
+async function gasPost(payload) {
+  const res = await fetch(GOOGLE_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(Object.assign({}, payload, { secret: APP_SECRET }))
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); }
+  catch(e) { throw new Error('GAS trả về không phải JSON: ' + text.slice(0, 160)); }
+  if (data && data.status && data.status !== 'ok') throw new Error(data.message || 'Thao tác thất bại');
+  return data;
+}
 
 let markerImages = []; // [{dataUrl, path}]
 let toastTimer;
@@ -360,9 +380,9 @@ function resizeImage(dataUrl, cb) {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     let w = img.width, h = img.height;
-    const sc = Math.min(1, 800 / Math.max(w, h));
+    const sc = Math.min(1, IMG_MAX_DIM / Math.max(w, h));
     w = Math.round(w*sc); h = Math.round(h*sc);
-    let q = 0.88;
+    let q = 0.9;
     const render = () => { canvas.width=w; canvas.height=h; ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h); ctx.drawImage(img,0,0,w,h); return canvas.toDataURL('image/jpeg',q); };
     let r = render();
     while (r.length > MAX_IMG_LEN && q > 0.1) { q -= .08; r = render(); }
@@ -410,19 +430,13 @@ function getImageExtFromDataUrl(d) {
 }
 
 async function uploadImageViaGas(dataUrl, soTru) {
-  const res = await fetch(GOOGLE_SCRIPT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({
-      action: 'upload_image',
-      imageBase64: getBase64FromDataUrl(dataUrl),
-      ext: getImageExtFromDataUrl(dataUrl),
-      soTru: soTru || 'img'
-    })
+  const data = await gasPost({
+    action: 'upload_image',
+    imageBase64: getBase64FromDataUrl(dataUrl),
+    ext: getImageExtFromDataUrl(dataUrl),
+    soTru: soTru || 'img'
   });
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  const data = JSON.parse(await res.text());
-  if (data.status !== 'ok') throw new Error(data.message || 'Upload thất bại');
+  if (data.url) return data.url;   // ảnh Drive
   const p = data.path || '';
   return p.startsWith('http') ? p : GITHUB_RAW_BASE + p.replace(/^\//, '');
 }
@@ -512,17 +526,13 @@ async function submitReport() {
 
   btn.disabled = true; btn.textContent = '⌛ Đang gửi...';
   try {
-    await fetch(GOOGLE_SCRIPT_URL, {
-      method: 'POST', mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    await gasPost(payload);   // đọc được kết quả thật từ GAS (khác no-cors cũ)
     document.getElementById('successMsg').textContent = `Phiếu #${payload.id} (${soTru}) đã lưu vào hệ thống.`;
     document.getElementById('successCard').classList.add('show');
     window.scrollTo({ top: 0, behavior: 'smooth' });
     showToast('✅ Đã gửi báo cáo');
   } catch(e) {
-    showToast('❌ Lỗi: ' + e.message);
+    showToast('❌ Không gửi được: ' + e.message);
   } finally {
     btn.disabled = false; btn.textContent = orig;
   }
