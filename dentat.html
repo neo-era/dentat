@@ -2921,13 +2921,20 @@ function updateThemeBtn() {
 // ── PWA INSTALL ──
 let _deferredPrompt = null;
 const _isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+// Chỉ coi là "di động" khi màn hình cảm ứng / UA mobile → mới hiện banner cài.
+// Desktop đã có biểu tượng cài sẵn trên thanh địa chỉ Chrome, không hiện banner
+// (tránh trùng/chồng với UI của trình duyệt, gây rối khi bấm Bỏ qua / Cài đặt).
+const _isMobile = () => {
+  try { if (window.matchMedia('(pointer: coarse)').matches) return true; } catch(e) {}
+  return /android|iphone|ipad|ipod|mobile|silk|kindle/i.test(navigator.userAgent);
+};
 const _inStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const _installDismissed = () => { try { return localStorage.getItem('dt_installDismissed') === '1'; } catch(e) { return false; } };
 
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   _deferredPrompt = e;
-  if (!_inStandalone() && !_installDismissed()) {
+  if (_isMobile() && !_inStandalone() && !_installDismissed()) {
     setTimeout(() => { const el = document.getElementById('installBanner'); if (el) el.classList.add('show'); }, 2500);
   }
 });
@@ -2937,7 +2944,12 @@ window.addEventListener('appinstalled', () => {
   try { localStorage.setItem('dt_installDismissed', '1'); } catch(e) {}
 });
 function doInstall() {
-  if (!_deferredPrompt) { showToast('Trình duyệt chưa sẵn sàng cài — thử lại sau'); return; }
+  if (!_deferredPrompt) {
+    // Chưa có prompt (desktop, hoặc Chrome chưa nạp kịp) → ẩn banner + hướng dẫn
+    dismissInstall();
+    showToast('Để cài: bấm biểu tượng cài ⊕ trên thanh địa chỉ của trình duyệt', 5000);
+    return;
+  }
   _deferredPrompt.prompt();
   _deferredPrompt.userChoice.finally(() => {
     _deferredPrompt = null;
