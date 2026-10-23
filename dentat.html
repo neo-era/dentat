@@ -12,6 +12,13 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Đèn Tắt">
+  <script>
+    // Đặt data-theme SỚM (trước khi vẽ) theo tùy chọn đã lưu hoặc hệ thống → không nhấp nháy
+    (function(){ try { var t = localStorage.getItem('dt_theme');
+      if (t !== 'dark' && t !== 'light') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    } catch(e) { document.documentElement.setAttribute('data-theme','light'); } })();
+  </script>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="images/icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="images/icon-192.png">
@@ -507,6 +514,72 @@
     .sb-user-role { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
     .sb-btn.logout { color: var(--red); border-color: #fee2e2; }
     .sb-btn.logout:hover { background: #fee2e2; border-color: var(--red); color: var(--red); }
+
+    /* ── FOCUS VISIBLE (a11y) ── */
+    :focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; }
+    button:focus-visible, a:focus-visible, select:focus-visible,
+    input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px; }
+
+    /* ── REDUCED MOTION ── */
+    @media (prefers-reduced-motion: reduce) {
+      .den-pulse, .den-pulse::before { animation: none !important; }
+      *, *::before, *::after { transition-duration: .001ms !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
+    }
+
+    /* ── DARK MODE (áp theo data-theme trên <html>, do JS set theo hệ thống/tùy chọn) ── */
+    :root[data-theme="dark"] {
+      --text: #e2e8f0; --text-muted: #94a3b8; --text-light: #64748b;
+      --border: #334155; --bg: #0f172a; --white: #1e293b;
+      --sky-light: #0b3a52; --green-light: #064e3b; --red-light: #4c1d1d;
+      --shadow: 0 4px 20px rgba(0,0,0,.5); --shadow-lg: 0 8px 40px rgba(0,0,0,.6);
+    }
+    :root[data-theme="dark"] .pc,
+    :root[data-theme="dark"] #infoCard { background: var(--white); color: var(--text); }
+    :root[data-theme="dark"] .pc-name,
+    :root[data-theme="dark"] #reportCard h3,
+    :root[data-theme="dark"] #zaloCard h3 { color: var(--text); }
+    :root[data-theme="dark"] .pc-divider { background: #334155; }
+    :root[data-theme="dark"] .pc-row { border-bottom-color: #243244; }
+    :root[data-theme="dark"] .pc-coords { background: #0f172a; color: var(--text-muted); }
+    :root[data-theme="dark"] .pc-btn.edit { background: #334155; color: var(--text); }
+    :root[data-theme="dark"] .pc-avatar-ph { background: linear-gradient(135deg,#334155,#243244); }
+    :root[data-theme="dark"] .fg input:focus,
+    :root[data-theme="dark"] .fg textarea:focus,
+    :root[data-theme="dark"] .fg select:focus,
+    :root[data-theme="dark"] .login-body .fg input:focus { background: #0f172a; }
+    :root[data-theme="dark"] .sb-listbox { background: var(--white); color: var(--text); }
+    :root[data-theme="dark"] .sb-btn:hover { background: #3a2a1a; }
+    :root[data-theme="dark"] #sbUserChip { background: linear-gradient(135deg,#243244,#1e293b); }
+    :root[data-theme="dark"] .filter-chip.active { background: var(--white); }
+    :root[data-theme="dark"] .sl-item { border-bottom-color: #243244; }
+    :root[data-theme="dark"] .sl-item:hover { background: #243244; }
+    :root[data-theme="dark"] #searchDrop li a:hover { background: #243244; }
+    :root[data-theme="dark"] .rpt-row select { background-color: var(--white); }
+    :root[data-theme="dark"] .rpt-tt-chip.on { background: #3a2a1a; }
+    :root[data-theme="dark"] .cam-btn:hover { background: #243244; }
+    :root[data-theme="dark"] .pc-row:last-child { border-bottom: none; }
+
+    /* ── INSTALL BANNER / iOS TIP (PWA) ── */
+    #installBanner, #iosTip {
+      position: fixed; left: 0; right: 0; z-index: 9500;
+      background: rgba(15,23,42,.98); color: #fff; backdrop-filter: blur(10px);
+      box-shadow: 0 -4px 24px rgba(0,0,0,.4);
+      transform: translateY(120%); transition: transform .35s cubic-bezier(.4,0,.2,1);
+    }
+    #installBanner {
+      bottom: calc(var(--bottomnav-h) + var(--safe-bottom));
+      padding: 12px 14px calc(12px); display: flex; align-items: center; gap: 12px;
+    }
+    #installBanner.show, #iosTip.show { transform: translateY(0); }
+    #installBanner img { width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0; }
+    #installBanner .ib-info { flex: 1; min-width: 0; }
+    #installBanner .ib-info strong { display: block; font-size: 14px; font-weight: 700; }
+    #installBanner .ib-info span { font-size: 12px; color: #94a3b8; }
+    #installBanner .btn-install { background: var(--orange); color: #fff; border: none; border-radius: 8px; padding: 9px 14px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; min-height: 40px; }
+    #installBanner .btn-dismiss, #iosTip .btn-dismiss { background: transparent; color: #94a3b8; border: 1.5px solid #334155; border-radius: 8px; padding: 9px 12px; font-size: 13px; cursor: pointer; font-family: inherit; min-height: 40px; }
+    #iosTip { bottom: 0; padding: 16px 16px calc(16px + var(--safe-bottom)); text-align: center; }
+    #iosTip p { font-size: 13px; line-height: 1.6; margin-bottom: 10px; color: #cbd5e1; }
+    #iosTip strong { color: #fff; }
   </style>
 </head>
 <body>
@@ -521,12 +594,12 @@
     </div>
     <div class="login-body">
       <div class="fg">
-        <label>Tên đăng nhập</label>
+        <label for="lUsername">Tên đăng nhập</label>
         <input id="lUsername" type="text" placeholder="Nhập tên đăng nhập" autocomplete="username"
           onkeydown="if(event.key==='Enter')document.getElementById('lPassword').focus()">
       </div>
       <div class="fg">
-        <label>Mật khẩu</label>
+        <label for="lPassword">Mật khẩu</label>
         <input id="lPassword" type="password" placeholder="Nhập mật khẩu" autocomplete="current-password"
           onkeydown="if(event.key==='Enter')doLogin()">
       </div>
@@ -540,11 +613,12 @@
 <header id="topBar">
   <div class="topbar-brand"><span>💡</span>ĐÈN TẮT CSCC<small id="appVerBadge" style="-webkit-text-fill-color:rgba(255,255,255,.35);font-size:10px;font-weight:500;margin-left:2px"></small></div>
   <div class="topbar-search">
-    <input type="text" id="searchInput" placeholder="Tìm số trụ, đường, phường..." autocomplete="off"
+    <input type="text" id="searchInput" placeholder="Tìm số trụ, đường, phường..." autocomplete="off" aria-label="Tìm số trụ, đường, phường"
       onkeydown="if(event.key==='Enter')searchMarkers()">
-    <button onclick="searchMarkers()">🔍</button>
+    <button onclick="searchMarkers()" aria-label="Tìm kiếm">🔍</button>
   </div>
-  <div id="topbarUser" onclick="logout()" title="Nhấn để đăng xuất">
+  <div id="topbarUser" onclick="logout()" title="Nhấn để đăng xuất" role="button" tabindex="0" aria-label="Tài khoản — nhấn để đăng xuất"
+    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();logout();}">
     <div class="topbar-av" id="topbarAv">👤</div>
     <span class="topbar-uname" id="topbarUname">—</span>
   </div>
@@ -621,10 +695,10 @@
 
 <!-- ── SIDEBAR ── -->
 <div id="sidebarOverlay" onclick="closeSidebar()"></div>
-<aside id="sidebar">
+<aside id="sidebar" aria-label="Menu điều hướng">
   <div class="sb-header">
     <div class="sb-header-title">💡 Quản lý đèn tắt</div>
-    <button class="sb-close" onclick="closeSidebar()">✕</button>
+    <button class="sb-close" onclick="closeSidebar()" aria-label="Đóng menu">✕</button>
   </div>
   <div id="sbUserChip">
     <div class="sb-user-av" id="sbUserAv">👤</div>
@@ -667,6 +741,7 @@
       <button id="sbBtnZalo" class="sb-btn" onclick="openZaloImport();closeSidebar()"><span class="bi">📥</span>Nhập từ Zalo</button>
       <button class="sb-btn" onclick="window.open('huongdan.html','_blank')"><span class="bi">📖</span>Hướng dẫn sử dụng</button>
       <button class="sb-btn" onclick="window.open('quytrinh.html','_blank')"><span class="bi">⚖️</span>Quy trình phối hợp</button>
+      <button id="themeToggleBtn" class="sb-btn" onclick="toggleTheme()"><span class="bi">🌙</span><span class="lbl">Chế độ tối</span></button>
       <button class="sb-btn logout" onclick="logout()"><span class="bi">🚪</span>Đăng xuất</button>
     </div>
     <div class="sb-section">
@@ -681,7 +756,7 @@
   <div class="mpop-card" id="mpopCard">
     <div class="mpop-header" id="mpopHeader">
       <span id="mpopTitle">Thêm đèn mới</span>
-      <button class="mpop-close" onclick="cancelMarkerPopup()">✕</button>
+      <button class="mpop-close" onclick="cancelMarkerPopup()" aria-label="Đóng">✕</button>
     </div>
     <div class="mpop-body">
       <div class="mpop-section-title">Thông tin cơ bản</div>
@@ -756,7 +831,7 @@
 </div>
 
 <!-- ── INFO BOTTOM SHEET ── -->
-<div id="infoSheet" class="mpop-overlay" onclick="if(event.target===this)closeInfoSheet()">
+<div id="infoSheet" class="mpop-overlay" role="dialog" aria-modal="true" aria-label="Thông tin đèn" onclick="if(event.target===this)closeInfoSheet()">
   <div id="infoCard">
     <div class="info-drag"></div>
     <div id="infoCardContent"></div>
@@ -764,13 +839,13 @@
 </div>
 
 <!-- ── REPORT MODAL ── -->
-<div id="reportModal">
+<div id="reportModal" role="dialog" aria-modal="true" aria-label="Báo cáo đèn hư hàng ngày">
   <div id="reportCard">
     <h3>📊 Báo cáo đèn hư hàng ngày</h3>
     <p>Chọn khoảng thời gian và xuất danh sách đèn sự cố</p>
     <div class="rpt-row">
-      <div><label>Từ ngày</label><div class="date-field"><input type="text" id="rptFrom" placeholder="DD/MM/YYYY" inputmode="numeric" maxlength="10" oninput="maskDate(this)"><input type="date" id="rptFromPick" class="date-pick" onchange="pickDate('rptFrom', this)"><button type="button" class="date-btn" onclick="openDatePick('rptFromPick','rptFrom')" title="Chọn từ lịch">📅</button></div></div>
-      <div><label>Đến ngày</label><div class="date-field"><input type="text" id="rptTo" placeholder="DD/MM/YYYY" inputmode="numeric" maxlength="10" oninput="maskDate(this)"><input type="date" id="rptToPick" class="date-pick" onchange="pickDate('rptTo', this)"><button type="button" class="date-btn" onclick="openDatePick('rptToPick','rptTo')" title="Chọn từ lịch">📅</button></div></div>
+      <div><label>Từ ngày</label><div class="date-field"><input type="text" id="rptFrom" placeholder="DD/MM/YYYY" inputmode="numeric" maxlength="10" oninput="maskDate(this)"><input type="date" id="rptFromPick" class="date-pick" onchange="pickDate('rptFrom', this)"><button type="button" class="date-btn" onclick="openDatePick('rptFromPick','rptFrom')" title="Chọn từ lịch" aria-label="Chọn ngày từ lịch">📅</button></div></div>
+      <div><label>Đến ngày</label><div class="date-field"><input type="text" id="rptTo" placeholder="DD/MM/YYYY" inputmode="numeric" maxlength="10" oninput="maskDate(this)"><input type="date" id="rptToPick" class="date-pick" onchange="pickDate('rptTo', this)"><button type="button" class="date-btn" onclick="openDatePick('rptToPick','rptTo')" title="Chọn từ lịch" aria-label="Chọn ngày từ lịch">📅</button></div></div>
     </div>
     <div class="rpt-row">
       <div><label>Phường / Xã</label><select id="rptPhuong"><option value="">Tất cả phường</option></select></div>
@@ -790,7 +865,7 @@
 </div>
 
 <!-- ── ZALO IMPORT MODAL ── -->
-<div id="zaloModal">
+<div id="zaloModal" role="dialog" aria-modal="true" aria-label="Nhập từ tin nhắn Zalo">
   <div id="zaloCard">
     <h3>📥 Nhập từ tin nhắn Zalo</h3>
     <p>Paste tin nhắn + link Google Maps + ảnh. Hệ thống tự tách số trụ/tuyến/tọa độ và tạo phiếu trạng thái <strong>Đang bị Sự cố</strong>.</p>
@@ -822,18 +897,34 @@
 
 <!-- ── STATUS LIST PANEL ── -->
 <div id="slOverlay" onclick="closeStatusList()"></div>
-<div id="slPanel">
+<div id="slPanel" role="dialog" aria-modal="true" aria-label="Danh sách đèn theo trạng thái">
   <div class="sl-handle"></div>
   <div class="sl-header">
     <div class="sl-dot" id="slDot"></div>
     <div class="sl-title" id="slTitle">Danh sách</div>
     <div class="sl-cnt" id="slCnt">0 đèn</div>
-    <button class="sl-close" onclick="closeStatusList()">✕</button>
+    <button class="sl-close" onclick="closeStatusList()" aria-label="Đóng danh sách">✕</button>
   </div>
   <div class="sl-body" id="slBody"></div>
 </div>
 
 <input id="importFileInput" type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="processFile(event)">
+
+<!-- ── PWA INSTALL BANNER (Android/Chrome) ── -->
+<div id="installBanner" role="region" aria-label="Cài đặt ứng dụng">
+  <img src="images/icon-192.png" alt="Biểu tượng ứng dụng Đèn Tắt">
+  <div class="ib-info">
+    <strong>Cài ứng dụng Đèn Tắt</strong>
+    <span>Mở nhanh, chạy toàn màn hình như app</span>
+  </div>
+  <button class="btn-install" type="button" onclick="doInstall()">Cài đặt</button>
+  <button class="btn-dismiss" type="button" onclick="dismissInstall()" aria-label="Bỏ qua lời mời cài đặt">Bỏ qua</button>
+</div>
+<!-- ── Hướng dẫn cài trên iOS Safari ── -->
+<div id="iosTip" role="region" aria-label="Hướng dẫn cài trên iOS">
+  <p>Cài vào màn hình chính: nhấn <strong>Chia sẻ</strong> ↑ → chọn <strong>"Thêm vào MH chính"</strong></p>
+  <button class="btn-dismiss" type="button" onclick="dismissInstall()">Đã hiểu</button>
+</div>
 
 <!-- ── SCRIPTS ── -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -846,7 +937,30 @@ const APP_VERSION = 'v4.0';
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0YAMrbBpNdTL0cmE_1LdQ7SJzeUW0J0VHhWpv3WqW9LvLyBTP8YV2nPzuuR27pJTZ8g/exec';
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?output=csv';
 const PHUTRACH_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC6mnGNSNDjUVzs5C4Se9Q9JQCGF9_YQRTRXewhsJhg0QDAcp6NqtxNsFl-fs8g1yyYBQEUqPhgwBv/pub?gid=2043665350&single=true&output=csv';
-const MAX_IMG_LEN = 32767;
+// Ảnh được upload lên GitHub (chỉ lưu URL), KHÔNG nhét base64 vào ô Sheet nữa,
+// nên không còn bị giới hạn 32767 ký tự/ô → cho phép ảnh nét hơn (~500KB).
+const MAX_IMG_LEN = 700000;
+const IMG_MAX_DIM = 1600;
+// ⚠️ Đặt TRÙNG với Script Property APP_SECRET của GAS để bật xác thực ghi/xóa/đọc.
+// Để trống = chạy chế độ cũ (chưa bật xác thực).
+const APP_SECRET = 'dentat-IsDQEqL9TuwRiI2Dk8VuRPmr';
+
+// POST tới GAS bằng text/plain → KHÔNG kích hoạt CORS preflight nên ĐỌC được kết
+// quả trả về (khác với no-cors cũ luôn báo thành công dù lỗi). Tự kèm secret.
+async function gasPost(payload) {
+  const res = await fetch(GOOGLE_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(Object.assign({}, payload, { secret: APP_SECRET }))
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); }
+  catch(e) { throw new Error('GAS trả về không phải JSON: ' + text.slice(0, 160)); }
+  if (data && data.status && data.status !== 'ok') throw new Error(data.message || 'Thao tác thất bại');
+  return data;
+}
 
 const STATUS_CONFIG = {
   '1': { label: 'Đèn LED đang hư',          color: '#ef4444', bg: '#fee2e2', emoji: '⚡', pulse: true  },
@@ -1011,9 +1125,9 @@ function searchMarkers() {
     const p = parseMarkerRow(e.row); const cfg = STATUS_CONFIG[String(p.trangThai)] || {};
     const li = document.createElement('li');
     li.innerHTML = `<a href="#"><span style="color:${cfg.color||'#64748b'};font-size:16px">💡</span>
-      <span><strong>${p.soTru || '—'}</strong> &nbsp;
-      <span style="color:#64748b;font-size:11px">${p.duong || ''} ${p.phuong || ''}</span></span>
-      <span style="color:${cfg.color||'#64748b'};font-size:10px;margin-left:auto;white-space:nowrap">${cfg.label||''}</span></a>`;
+      <span><strong>${esc(p.soTru || '—')}</strong> &nbsp;
+      <span style="color:#64748b;font-size:11px">${esc(p.duong || '')} ${esc(p.phuong || '')}</span></span>
+      <span style="color:${cfg.color||'#64748b'};font-size:10px;margin-left:auto;white-space:nowrap">${esc(cfg.label||'')}</span></a>`;
     li.querySelector('a').onclick = ev => { ev.preventDefault(); map.setView([e.lat, e.lon], 18); openInfoSheet(e.rowIndex); drop.style.display = 'none'; };
     list.appendChild(li);
   });
@@ -1024,6 +1138,11 @@ document.addEventListener('click', e => { if (!e.target.closest('#searchDrop') &
 // ── HELPERS ──
 function normalizeText(t) { return (t||'').toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase(); }
 function normalizeKey(v) { return (v||'').toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').trim().toLowerCase(); }
+// Escape dữ liệu người dùng trước khi chèn vào innerHTML (chống XSS lưu trữ).
+const _ESC = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' };
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => _ESC[c]); }
+// Chuẩn hóa URL an toàn để nhúng vào thuộc tính/onclick (mã hóa dấu nháy).
+function safeUrl(u) { try { return encodeURI(String(u || '')).replace(/'/g, '%27').replace(/"/g, '%22'); } catch(e) { return ''; } }
 
 // 168 đơn vị hành chính cấp xã của TP.HCM mới (113 phường + 54 xã + 1 đặc khu),
 // hiệu lực 01/7/2025 theo Nghị quyết 1685/NQ-UBTVQH15. Nguồn: tphcm.chinhphu.vn.
@@ -1380,21 +1499,14 @@ function getImageExtFromDataUrl(dataUrl) {
   return 'jpg';
 }
 async function uploadImageViaGas(dataUrl, soTru) {
-  const res = await fetch(GOOGLE_SCRIPT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({
-      action: 'upload_image',
-      imageBase64: getBase64FromDataUrl(dataUrl),
-      ext: getImageExtFromDataUrl(dataUrl),
-      soTru: soTru || 'img'
-    })
+  const data = await gasPost({
+    action: 'upload_image',
+    imageBase64: getBase64FromDataUrl(dataUrl),
+    ext: getImageExtFromDataUrl(dataUrl),
+    soTru: soTru || 'img'
   });
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  const text = await res.text();
-  let data;
-  try { data = JSON.parse(text); } catch(e) { throw new Error('GAS trả về không phải JSON: ' + text.slice(0, 200)); }
-  if (data.status !== 'ok') throw new Error(data.message || 'Upload thất bại');
+  // Ảnh lưu trên Google Drive → dùng URL trực tiếp; fallback path (dữ liệu cũ GitHub)
+  if (data.url) return data.url;
   const p = data.path || '';
   return p.startsWith('http') ? p : GITHUB_RAW_BASE + p.replace(/^\//, '');
 }
@@ -1405,26 +1517,26 @@ function createPopupContent(row, rowIndex) {
   const cfg = STATUS_CONFIG[effectiveStatus(p)] || { label: 'Không xác định', color: '#94a3b8', bg: '#f1f5f9', emoji: '❓' };
   const imgUrls = (p.hinhAnh || '').split(';').map(s => s.trim()).filter(Boolean).map(normalizeImagePath);
   const avatarHtml = imgUrls.length
-    ? imgUrls.map(u => `<img class="pc-avatar" src="${u}" onclick="window.open('${u}','_blank')" title="Xem ảnh đầy đủ" onerror="this.outerHTML='<div class=\\'pc-avatar-ph\\'>💡</div>'">`).join('')
+    ? imgUrls.map(u => `<img class="pc-avatar" src="${esc(u)}" onclick="window.open('${safeUrl(u)}','_blank')" title="Xem ảnh đầy đủ" onerror="this.outerHTML='<div class=\\'pc-avatar-ph\\'>💡</div>'">`).join('')
     : `<div class="pc-avatar-ph">💡</div>`;
   const days = daysBetween(p.ngayPhatHien);
   const broken = ['1','2','5','7'].includes(p.trangThai);
   const daysHtml = broken && days !== null
     ? `<div class="pc-days" style="background:${cfg.bg};color:${cfg.color}">⏱ ${days <= 0 ? 'Hôm nay' : days + ' ngày chưa sửa'}</div>`
-    : (p.ngaySua ? `<div class="pc-days" style="background:#d1fae5;color:#065f46">✅ Đã sửa ${p.ngaySua}</div>` : '');
+    : (p.ngaySua ? `<div class="pc-days" style="background:#d1fae5;color:#065f46">✅ Đã sửa ${esc(p.ngaySua)}</div>` : '');
   const coordStr = Number.isFinite(p.lat) && Number.isFinite(p.lon) ? `${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}` : '—';
   const rows = [];
-  if (p.loaiDen || p.congSuat) rows.push(`<div class="pc-row"><span class="pi">💡</span><span class="pk">Loại đèn</span><span class="pv">${[p.loaiDen, p.congSuat ? p.congSuat+'W' : ''].filter(Boolean).join(' · ')}</span></div>`);
-  if (p.tenTu) rows.push(`<div class="pc-row"><span class="pi">🗄</span><span class="pk">Tủ điều khiển</span><span class="pv">${p.tenTu}</span></div>`);
-  if (p.duong || p.phuong) rows.push(`<div class="pc-row"><span class="pi">📍</span><span class="pk">Địa chỉ</span><span class="pv">${[p.duong, p.phuong].filter(Boolean).join(', ')}</span></div>`);
-  if (p.ngayPhatHien || p.nguoiPhatHien) rows.push(`<div class="pc-row"><span class="pi">🗓</span><span class="pk">Phát hiện</span><span class="pv">${[p.ngayPhatHien, p.nguoiPhatHien].filter(Boolean).join(' · ')}</span></div>`);
+  if (p.loaiDen || p.congSuat) rows.push(`<div class="pc-row"><span class="pi">💡</span><span class="pk">Loại đèn</span><span class="pv">${esc([p.loaiDen, p.congSuat ? p.congSuat+'W' : ''].filter(Boolean).join(' · '))}</span></div>`);
+  if (p.tenTu) rows.push(`<div class="pc-row"><span class="pi">🗄</span><span class="pk">Tủ điều khiển</span><span class="pv">${esc(p.tenTu)}</span></div>`);
+  if (p.duong || p.phuong) rows.push(`<div class="pc-row"><span class="pi">📍</span><span class="pk">Địa chỉ</span><span class="pv">${esc([p.duong, p.phuong].filter(Boolean).join(', '))}</span></div>`);
+  if (p.ngayPhatHien || p.nguoiPhatHien) rows.push(`<div class="pc-row"><span class="pi">🗓</span><span class="pk">Phát hiện</span><span class="pv">${esc([p.ngayPhatHien, p.nguoiPhatHien].filter(Boolean).join(' · '))}</span></div>`);
   if (p.dienThoai) {
     const ph = normalizePhone(p.dienThoai);
-    rows.push(`<div class="pc-row"><span class="pi">📱</span><span class="pk">Số ĐT</span><span class="pv">${p.dienThoai} <a href="tel:${ph}" class="pc-phone-btn" title="Gọi điện">📞</a> <a href="https://zalo.me/${ph}" target="_blank" rel="noopener" class="pc-phone-btn zalo" title="Nhắn Zalo">🩷</a></span></div>`);
+    rows.push(`<div class="pc-row"><span class="pi">📱</span><span class="pk">Số ĐT</span><span class="pv">${esc(p.dienThoai)} <a href="tel:${esc(ph)}" class="pc-phone-btn" title="Gọi điện">📞</a> <a href="https://zalo.me/${esc(ph)}" target="_blank" rel="noopener" class="pc-phone-btn zalo" title="Nhắn Zalo">🩷</a></span></div>`);
   }
-  if (p.ngaySua || p.nguoiSua) rows.push(`<div class="pc-row"><span class="pi">🔨</span><span class="pk">Đã sửa</span><span class="pv">${[p.ngaySua, p.nguoiSua].filter(Boolean).join(' · ')}</span></div>`);
-  if (p.vatTuSua) rows.push(`<div class="pc-row"><span class="pi">🔧</span><span class="pk">Vật tư</span><span class="pv">${p.vatTuSua}</span></div>`);
-  if (p.ghiChu) rows.push(`<div class="pc-row"><span class="pi">📝</span><span class="pk">Ghi chú</span><span class="pv">${p.ghiChu}</span></div>`);
+  if (p.ngaySua || p.nguoiSua) rows.push(`<div class="pc-row"><span class="pi">🔨</span><span class="pk">Đã sửa</span><span class="pv">${esc([p.ngaySua, p.nguoiSua].filter(Boolean).join(' · '))}</span></div>`);
+  if (p.vatTuSua) rows.push(`<div class="pc-row"><span class="pi">🔧</span><span class="pk">Vật tư</span><span class="pv">${esc(p.vatTuSua)}</span></div>`);
+  if (p.ghiChu) rows.push(`<div class="pc-row"><span class="pi">📝</span><span class="pk">Ghi chú</span><span class="pv">${esc(p.ghiChu)}</span></div>`);
 
   const hasRoute = Number.isFinite(p.lat);
   const hasEdit  = Number.isInteger(rowIndex);
@@ -1443,9 +1555,9 @@ function createPopupContent(row, rowIndex) {
     <div class="pc-header">
       ${avatarHtml}
       <div class="pc-meta">
-        <div class="pc-name">${p.soTru || 'Chưa có số trụ'}</div>
-        ${p.id ? `<div class="pc-id">ID: ${p.id}</div>` : ''}
-        <div class="pc-badge" style="background:${cfg.bg};color:${cfg.color}">${cfg.emoji} ${cfg.label}</div>
+        <div class="pc-name">${esc(p.soTru || 'Chưa có số trụ')}</div>
+        ${p.id ? `<div class="pc-id">ID: ${esc(p.id)}</div>` : ''}
+        <div class="pc-badge" style="background:${cfg.bg};color:${cfg.color}">${cfg.emoji} ${esc(cfg.label)}</div>
         ${daysHtml}
       </div>
     </div>
@@ -1508,27 +1620,30 @@ function addMarkerRow(row, idx) {
   markersCluster.addLayer(marker);
   if (p.soTru) {
     entry.labelMarker = L.marker([p.lat, p.lon], {
-      icon: L.divIcon({ className: 'custom-label', html: `<div>${p.soTru}</div>`, iconSize: [80, 16], iconAnchor: [40, 32] })
+      icon: L.divIcon({ className: 'custom-label', html: `<div>${esc(p.soTru)}</div>`, iconSize: [80, 16], iconAnchor: [40, 32] })
     }).addTo(labelLayerGroup);
   }
   markers[idx] = entry;
   return marker;
 }
 
-function addMarkersToMap(data) {
+// Dựng lại toàn bộ marker từ loadedData. PHẢI gọi lại sau khi XÓA/sắp xếp để
+// closure trong mỗi marker (openInfoSheet(idx)) không còn trỏ sai chỉ số (off-by-one).
+function refreshMarkers(fit) {
   markersCluster.clearLayers(); labelLayerGroup.clearLayers(); markers = [];
-  data.forEach((row, i) => addMarkerRow(row, i));
+  loadedData.forEach((row, i) => addMarkerRow(row, i));
   const validCount = markers.filter(Boolean).length;
-  console.log('[dentat] Markers on map:', validCount, '/', data.length);
+  console.log('[dentat] Markers on map:', validCount, '/', loadedData.length);
   applyFilter();
   updateStats();
   buildFilterChips();
   buildExtraFilters();
   buildLegend();
-  if (validCount > 0) {
+  if (fit && validCount > 0) {
     try { map.fitBounds(markersCluster.getBounds().pad(.1)); } catch(e) { console.warn('[dentat] fitBounds error:', e); }
   }
 }
+function addMarkersToMap(data) { loadedData = data; refreshMarkers(true); }
 
 // ── FILTER ──
 function toggleFilter(status) {
@@ -1603,7 +1718,7 @@ function buildExtraFilters() {
   if (nguoiSel) {
     const names = [...new Set(loadedData.map(r => (parseRow(r).nguoiPhatHien || '').trim()).filter(Boolean))].sort();
     nguoiSel.innerHTML = '<option value="">— Tất cả —</option>'
-      + names.map(n => `<option value="${n}">${n}</option>`).join('');
+      + names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
     nguoiSel.value = filterNguoi;
   }
   // Nút xóa bộ lọc
@@ -1641,12 +1756,12 @@ function openStatusList(status) {
       const badge = broken && days !== null
         ? `<span class="sl-badge" style="background:${cfg.bg};color:${cfg.color}">${days <= 0 ? 'Hôm nay' : days + ' ngày'}</span>`
         : (p.ngaySua ? `<span class="sl-badge" style="background:#d1fae5;color:#065f46">Đã sửa</span>` : '');
-      const addr = [p.duong, p.phuong].filter(Boolean).join(', ') || 'Chưa có địa chỉ';
-      const tenTu = p.tenTu ? ` · Tủ: ${p.tenTu}` : '';
+      const addr = esc([p.duong, p.phuong].filter(Boolean).join(', ') || 'Chưa có địa chỉ');
+      const tenTu = p.tenTu ? ` · Tủ: ${esc(p.tenTu)}` : '';
       return `<div class="sl-item" style="border-left-color:${cfg.color}" onclick="flyToEntry(${entry.rowIndex})">
         <div class="sl-icon" style="background:${cfg.bg}">${cfg.emoji}</div>
         <div class="sl-main">
-          <div class="sl-name">${p.soTru || '(Chưa có số trụ)'}</div>
+          <div class="sl-name">${esc(p.soTru || '(Chưa có số trụ)')}</div>
           <div class="sl-sub">${addr}${tenTu}</div>
         </div>
         ${badge}
@@ -1734,26 +1849,24 @@ function parseCsvToObjects(text) {
   return out;
 }
 
+// Đọc dữ liệu qua backend GAS (action get_data) — KHÔNG dùng CSV công khai nữa,
+// để không lộ toàn bộ dữ liệu + SĐT người dân cho bất kỳ ai có link. Yêu cầu secret.
 async function loadDataFromSheet() {
   showToast('⏳ Đang tải dữ liệu từ Data...');
   try {
-    const res = await fetch(GOOGLE_SHEET_CSV_URL);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const csv = await res.text();
-    let data = parseCsvToObjects(csv);
+    const resp = await gasPost({ action: 'get_data' });
+    let data = (resp && resp.rows) || [];
     data = data.filter(r => r && Object.values(r).some(v => v !== null && v !== ''));
-    console.log('[dentat] Sheet headers:', data[0] ? Object.keys(data[0]) : 'no data');
     console.log('[dentat] Loaded rows:', data.length);
-    if (data[0]) {
-      const sample = parseRow(data[0]);
-      console.log('[dentat] Sample row parsed:', sample);
-    }
     loadedData = data;
     addMarkersToMap(loadedData);
     showToast(`✅ Đã tải ${data.length} đèn từ Data`);
   } catch(e) {
     console.error('[dentat] Load error:', e);
-    showToast('❌ Không tải được dữ liệu: ' + e.message);
+    const hint = /secret|bảo mật/i.test(e.message)
+      ? '❌ Sai mã bảo mật — kiểm tra APP_SECRET trong file phải TRÙNG Script Property của GAS'
+      : '❌ Không tải được dữ liệu: ' + e.message;
+    showToast(hint, 5000);
   }
 }
 
@@ -1910,17 +2023,17 @@ function buildBienBanContent(idx) {
       ? '<div class="sc" style="margin-top:0"><span class="st">8 - Hình ảnh sự cố, bất cập đính kèm:</span></div>'
       : '<div class="imgpg-cap">Hình ảnh đính kèm (' + (i+1) + '/' + imgUrls.length + ') — Mã sự cố: ' + maSuCo + '</div>';
     return '<div class="page pb">' + head
-      + '<img class="bbimg" src="' + u + '" onerror="this.style.display=\'none\'">'
+      + '<img class="bbimg" src="' + esc(u) + '" onerror="this.style.display=\'none\'">'
       + '</div>';
   }).join('');
   // Mục 5 = "nhãn trạng thái: ghi chú"
   const ttLabel5 = (STATUS_CONFIG[effectiveStatus(p)] || {}).label || '';
-  const hienTrang5 = [ttLabel5, p.ghiChu].filter(Boolean).join(': ');
+  const hienTrang5 = [ttLabel5, esc(p.ghiChu)].filter(Boolean).join(': ');
   const deXuat = 'Đề nghị cho duy tu, sửa chữa để khắc phục sự cố, bất cập trong công tác quản lý, bảo dưỡng hệ thống trên.'
-    + (p.vatTuSua ? '<br>Vật tư: ' + p.vatTuSua : '');
-  const phuTrachKyRight = ky.cbkt || '';   // chỉ lấy từ cột CBKT, trống thì để trống (ký tay)
-  const chuyenVienKyLeft = ky.chuyenVien
-    + (ky.chuyenVienPhone ? '<br><span style="font-weight:normal;font-size:11pt">' + ky.chuyenVienPhone + '</span>' : '');
+    + (p.vatTuSua ? '<br>Vật tư: ' + esc(p.vatTuSua) : '');
+  const phuTrachKyRight = esc(ky.cbkt || '');   // chỉ lấy từ cột CBKT, trống thì để trống (ký tay)
+  const chuyenVienKyLeft = esc(ky.chuyenVien)
+    + (ky.chuyenVienPhone ? '<br><span style="font-weight:normal;font-size:11pt">' + esc(ky.chuyenVienPhone) + '</span>' : '');
   const css = '* { box-sizing:border-box; margin:0; padding:0; }'
     + '\nbody { font-family:"Times New Roman",Times,serif; font-size:13pt; color:#000; background:#fff; }'
     + '\n.page { width:21cm; min-height:29.7cm; margin:10mm auto; padding:15mm 15mm 15mm 20mm; background:#fff; }'
@@ -1953,10 +2066,10 @@ function buildBienBanContent(idx) {
     + '<div class="tb"><div class="tm">BIÊN BẢN VỀ SỰ CỐ, BẤT CẬP<br>TRONG CÔNG TÁC QUẢN LÝ, BẢO DƯỠNG<br>HỆ THỐNG CHIẾU SÁNG ĐÔ THỊ</div>'
     + '<div class="ms">Mã số sự cố: <strong>' + maSuCo + '</strong></div></div>'
     + '<div class="sc"><span class="st">1 - Đơn vị báo cáo:</span> Công ty Cổ phần Chiếu sáng Công cộng TP.HCM</div>'
-    + '<div class="sc"><span class="st">2 - Người kiểm tra, phát hiện:</span> ' + (p.nguoiPhatHien || '') + '</div>'
+    + '<div class="sc"><span class="st">2 - Người kiểm tra, phát hiện:</span> ' + esc(p.nguoiPhatHien || '') + '</div>'
     + '<div class="sc"><span class="st">3 - Tên, địa điểm hệ thống bị sự cố, có bất cập:</span>'
-    + '<div class="sb">- Tủ điều khiển: ' + (p.tenTu || '') + '<br>- Đường: ' + (p.duong || '') + '<br>- Phường: ' + (p.phuong || '') + '</div></div>'
-    + '<div class="sc"><span class="st">4 - Ngày giờ:</span> ' + (p.ngayPhatHien || '') + '</div>'
+    + '<div class="sb">- Tủ điều khiển: ' + esc(p.tenTu || '') + '<br>- Đường: ' + esc(p.duong || '') + '<br>- Phường: ' + esc(p.phuong || '') + '</div></div>'
+    + '<div class="sc"><span class="st">4 - Ngày giờ:</span> ' + esc(p.ngayPhatHien || '') + '</div>'
     + '<div class="sc"><span class="st">5 - Ghi nhận hiện trạng sự cố, bất cập:</span>'
     + '<div class="sb">' + hienTrang5 + '</div>' + dl(4) + '</div>'
     + '<div class="sc"><span class="st">6 - Đề xuất biện pháp khắc phục (quy mô, khối lượng dự kiến thực hiện):</span>'
@@ -2060,35 +2173,32 @@ async function deleteMarkerPopup() {
   const soTru = parseRow(row).soTru || 'đèn này';
   if (!confirm(`Xóa vĩnh viễn "${soTru}" khỏi dữ liệu?\nThao tác này không thể hoàn tác.`)) return;
 
+  const idx = editingIndex;
   const btn = document.getElementById('mpopDeleteBtn');
   btn.disabled = true; btn.textContent = '⏳ Đang xóa...';
   try {
-    await fetch(GOOGLE_SCRIPT_URL, {
-      method: 'POST', mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'delete_row', ...row })
-    });
-    const entry = markers[editingIndex];
-    if (entry) {
-      markersCluster.removeLayer(entry.marker);
-      if (entry.labelMarker) labelLayerGroup.removeLayer(entry.labelMarker);
-    }
-    loadedData.splice(editingIndex, 1);
-    markers.splice(editingIndex, 1);
-    applyFilter(); updateStats(); buildFilterChips();
+    await gasPost({ ...row, action: 'delete_row' });   // action đặt SAU cùng để không bị row.action ghi đè
+    loadedData.splice(idx, 1);
+    refreshMarkers(false);                              // dựng lại marker → không lệch chỉ số
     hideForm();
     showToast(`🗑 Đã xóa: ${soTru}`);
   } catch(e) {
-    showToast('❌ Lỗi: ' + e.message);
+    showToast('❌ Không xóa được: ' + e.message);       // lỗi → giữ nguyên dữ liệu
   } finally {
     btn.disabled = false; btn.textContent = '🗑 Xóa';
   }
 }
 
 // ── REVERSE GEOCODE ──
+let _lastGeocode = 0;
 async function reverseGeocode(lat, lon) {
+  // Nominatim giới hạn ~1 yêu cầu/giây — tự giãn cách để không bị chặn IP
+  const gap = Date.now() - _lastGeocode;
+  if (gap < 1100) await new Promise(r => setTimeout(r, 1100 - gap));
+  _lastGeocode = Date.now();
   try {
-    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=vi`);
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&zoom=18&addressdetails=1&lat=${lat}&lon=${lon}&accept-language=vi`);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
     const a = d.address || {};
     const duong = a.road || a.pedestrian || a.footway || a.path || '';
@@ -2240,8 +2350,7 @@ async function saveMarkerPopup() {
     const payload = editingIndex !== null
       ? (() => { const r = { ...loadedData[editingIndex] }; applyFieldsToRow(r, rowData); return r; })()
       : rowData;
-    console.log('[GAS payload]', JSON.stringify(payload, null, 2));
-    await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    await gasPost(payload);   // ghi + đọc kết quả; lỗi sẽ nhảy xuống catch, không cập nhật UI nhầm
     if (editingIndex !== null) {
       loadedData[editingIndex] = payload;
       const entry = markers[editingIndex];
@@ -2254,7 +2363,7 @@ async function saveMarkerPopup() {
         markersCluster.addLayer(entry.marker);
         if (soTru) {
           entry.labelMarker = L.marker([lat, lon], {
-            icon: L.divIcon({ className: 'custom-label', html: `<div>${soTru}</div>`, iconSize: [80,16], iconAnchor: [40,22] })
+            icon: L.divIcon({ className: 'custom-label', html: `<div>${esc(soTru)}</div>`, iconSize: [80,16], iconAnchor: [40,22] })
           }).addTo(labelLayerGroup);
         }
       }
@@ -2266,7 +2375,7 @@ async function saveMarkerPopup() {
     showToast(`✅ Đã lưu: ${soTru}`);
     hideForm();
   } catch(e) {
-    showToast('❌ Lỗi: ' + e.message);
+    showToast('❌ Không lưu được: ' + e.message);
   } finally {
     btn.disabled = false; btn.textContent = orig;
   }
@@ -2280,21 +2389,23 @@ async function quickFix(index) {
   const newStatus = p.trangThai === '2' ? '6' : (p.loaiDen === 'HPS' ? '4' : '3');
   const today = todayStr();
   const nguoiSua = currentUser?.displayName || currentUser?.username || '';
+  const prev = loadedData[index];                    // lưu để hoàn tác nếu lỗi
   const rowData = { ...loadedData[index] };
   applyFieldsToRow(rowData, { trangThai: newStatus, ngaySua: today, nguoiSua });
   rowData.action = 'full_update';
+  // cập nhật lạc quan cho mượt
   loadedData[index] = rowData;
   const entry = markers[index];
-  if (entry) {
-    entry.row = rowData;
-    entry.marker.setIcon(createStatusIcon(newStatus));
-  }
+  if (entry) { entry.row = rowData; entry.marker.setIcon(createStatusIcon(newStatus)); }
   applyFilter(); updateStats(); buildFilterChips();
   showToast(`✅ Đã đánh dấu ${p.soTru} sửa xong hôm nay`);
   try {
-    console.log('[GAS quickFix payload]', JSON.stringify(rowData, null, 2));
-    await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rowData) });
-  } catch(e) {}
+    await gasPost(rowData);
+  } catch(e) {
+    loadedData[index] = prev;                         // hoàn tác khi GAS báo lỗi
+    refreshMarkers(false);
+    showToast('❌ Chưa lưu được lên hệ thống: ' + e.message);
+  }
 }
 
 // ── IMAGE ──
@@ -2307,7 +2418,7 @@ function renderImagePreview() {
   const c = document.getElementById('fImagePreview');
   c.innerHTML = markerImages.map((img, i) => {
     const src = img.dataUrl || img.path;
-    return `<div class="img-thumb"><img src="${src}" onclick="window.open('${img.path||src}','_blank')" title="Xem ảnh"><button class="img-del" onclick="removeMarkerImage(${i})">✕</button></div>`;
+    return `<div class="img-thumb"><img src="${esc(src)}" onclick="window.open('${safeUrl(img.path||src)}','_blank')" title="Xem ảnh" alt="Ảnh hiện trường ${i+1}"><button class="img-del" onclick="removeMarkerImage(${i})" aria-label="Xóa ảnh ${i+1}">✕</button></div>`;
   }).join('');
 }
 function removeMarkerImage(i) { markerImages.splice(i, 1); renderImagePreview(); }
@@ -2319,9 +2430,9 @@ function resizeImage(dataUrl, meta, cb) {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     let w = img.width, h = img.height;
-    const sc = Math.min(1, 800 / Math.max(w, h));
+    const sc = Math.min(1, IMG_MAX_DIM / Math.max(w, h));
     w = Math.round(w*sc); h = Math.round(h*sc);
-    let q = 0.88;
+    let q = 0.9;
     const render = () => {
       canvas.width=w; canvas.height=h;
       ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h);
@@ -2433,7 +2544,7 @@ function handleZaloImage(e) {
 function renderZaloImagePreview() {
   const c = document.getElementById('zaloImagePreview');
   c.innerHTML = zaloImages.map((img, i) =>
-    `<div class="img-thumb"><img src="${img.dataUrl}"><button class="img-del" onclick="removeZaloImage(${i})">✕</button></div>`
+    `<div class="img-thumb"><img src="${esc(img.dataUrl)}" alt="Ảnh Zalo ${i+1}"><button class="img-del" onclick="removeZaloImage(${i})" aria-label="Xóa ảnh ${i+1}">✕</button></div>`
   ).join('');
 }
 function removeZaloImage(i) { zaloImages.splice(i, 1); renderZaloImagePreview(); zaloUpdatePreview(); }
@@ -2481,13 +2592,13 @@ function zaloUpdatePreview() {
     return;
   }
   const rows = [];
-  rows.push(`<div class="rpt-preview-row"><span>🏷 Số trụ:</span><strong>${parsed.soTru || '—'}</strong></div>`);
-  rows.push(`<div class="rpt-preview-row"><span>📍 Tuyến:</span><strong>${parsed.tuyen ? 'Tuyến ' + parsed.tuyen : '—'}</strong></div>`);
+  rows.push(`<div class="rpt-preview-row"><span>🏷 Số trụ:</span><strong>${esc(parsed.soTru || '—')}</strong></div>`);
+  rows.push(`<div class="rpt-preview-row"><span>📍 Tuyến:</span><strong>${parsed.tuyen ? 'Tuyến ' + esc(parsed.tuyen) : '—'}</strong></div>`);
   if (ll) rows.push(`<div class="rpt-preview-row"><span>📡 Tọa độ:</span><strong>${ll.lat.toFixed(6)}, ${ll.lon.toFixed(6)}</strong></div>`);
   else if (isShortLink) rows.push(`<div class="rpt-preview-row" style="color:#dc2626"><span>⚠</span><strong>Link rút gọn — mở link trong trình duyệt rồi copy URL đầy đủ</strong></div>`);
   else if (maps) rows.push(`<div class="rpt-preview-row" style="color:#dc2626"><span>⚠</span><strong>Không nhận diện được tọa độ</strong></div>`);
   else rows.push(`<div class="rpt-preview-row"><span>📡 Tọa độ:</span><strong>— (sẽ nhập thủ công)</strong></div>`);
-  if (phone) rows.push(`<div class="rpt-preview-row"><span>📱 SĐT:</span><strong>${normalizePhone(phone)}</strong></div>`);
+  if (phone) rows.push(`<div class="rpt-preview-row"><span>📱 SĐT:</span><strong>${esc(normalizePhone(phone))}</strong></div>`);
   rows.push(`<div class="rpt-preview-row"><span>🩷 Trạng thái:</span><strong style="color:#db2777">Đang bị Sự cố (mã 2)</strong></div>`);
   rows.push(`<div class="rpt-preview-row"><span>📷 Ảnh:</span><strong>${zaloImages.length}/3</strong></div>`);
   el.innerHTML = rows.join('');
@@ -2545,7 +2656,7 @@ function populateReportFilters() {
     const el = document.getElementById(id);
     if (!el) return;
     const cur = el.value;
-    el.innerHTML = `<option value="">${all}</option>` + items.map(v => `<option value="${v}"${v===cur?' selected':''}>${v}</option>`).join('');
+    el.innerHTML = `<option value="">${esc(all)}</option>` + items.map(v => `<option value="${esc(v)}"${v===cur?' selected':''}>${esc(v)}</option>`).join('');
   };
   sel('rptPhuong', phuongs, 'Tất cả phường');
   sel('rptNguoiPH', nguois,  'Tất cả');
@@ -2788,6 +2899,62 @@ function exportMarkersToCad() {
 
 // ── DRAGGABLE POPUP ──
 
+// ── THEME (Dark/Light) ──
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
+  try { localStorage.setItem('dt_theme', t); } catch(e) {}
+  updateThemeBtn();
+}
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  applyTheme(cur === 'dark' ? 'light' : 'dark');
+}
+function updateThemeBtn() {
+  const b = document.getElementById('themeToggleBtn');
+  if (!b) return;
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const bi = b.querySelector('.bi'), lbl = b.querySelector('.lbl');
+  if (bi) bi.textContent = dark ? '☀️' : '🌙';
+  if (lbl) lbl.textContent = dark ? 'Chế độ sáng' : 'Chế độ tối';
+}
+
+// ── PWA INSTALL ──
+let _deferredPrompt = null;
+const _isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+const _inStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const _installDismissed = () => { try { return localStorage.getItem('dt_installDismissed') === '1'; } catch(e) { return false; } };
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _deferredPrompt = e;
+  if (!_inStandalone() && !_installDismissed()) {
+    setTimeout(() => { const el = document.getElementById('installBanner'); if (el) el.classList.add('show'); }, 2500);
+  }
+});
+window.addEventListener('appinstalled', () => {
+  const el = document.getElementById('installBanner'); if (el) el.classList.remove('show');
+  _deferredPrompt = null;
+  try { localStorage.setItem('dt_installDismissed', '1'); } catch(e) {}
+});
+function doInstall() {
+  if (!_deferredPrompt) { showToast('Trình duyệt chưa sẵn sàng cài — thử lại sau'); return; }
+  _deferredPrompt.prompt();
+  _deferredPrompt.userChoice.finally(() => {
+    _deferredPrompt = null;
+    const el = document.getElementById('installBanner'); if (el) el.classList.remove('show');
+  });
+}
+function dismissInstall() {
+  ['installBanner','iosTip'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('show'); });
+  try { localStorage.setItem('dt_installDismissed', '1'); } catch(e) {}
+}
+// iOS Safari không có beforeinstallprompt → hiện hướng dẫn thủ công 1 lần
+function maybeShowIosTip() {
+  if (_isIos() && !_inStandalone() && !_installDismissed()) {
+    setTimeout(() => { const el = document.getElementById('iosTip'); if (el) el.classList.add('show'); }, 2500);
+  }
+}
+
 // ── SERVICE WORKER ──
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -2807,6 +2974,8 @@ window.onload = () => {
   buildFilterChips();
   buildExtraFilters();
   buildLegend();
+  updateThemeBtn();
+  maybeShowIosTip();
   loadPhuTrach();
   document.getElementById('reportModal').addEventListener('click', e => { if (e.target === document.getElementById('reportModal')) closeReportModal(); });
   checkAuth();
