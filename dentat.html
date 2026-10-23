@@ -580,6 +580,56 @@
     #iosTip { bottom: 0; padding: 16px 16px calc(16px + var(--safe-bottom)); text-align: center; }
     #iosTip p { font-size: 13px; line-height: 1.6; margin-bottom: 10px; color: #cbd5e1; }
     #iosTip strong { color: #fff; }
+
+    /* ── FAB CLUSTER (desktop) ── */
+    #fabCluster { position: fixed; right: 22px; bottom: 22px; z-index: 3200; display: none; flex-direction: column; gap: 12px; align-items: center; }
+    .fab-main { width: 60px; height: 60px; border-radius: 50%; border: none; cursor: pointer; font-size: 25px; color: #fff; font-family: inherit;
+      background: linear-gradient(135deg, var(--orange), #dc2626); box-shadow: 0 10px 28px rgba(249,115,22,.5);
+      display: flex; align-items: center; justify-content: center; transition: transform .15s, box-shadow .2s; }
+    .fab-main:hover { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(249,115,22,.6); }
+    .fab-main:active { transform: scale(.92); }
+    .fab-mini { width: 46px; height: 46px; border-radius: 50%; cursor: pointer; font-size: 18px; font-family: inherit;
+      background: rgba(255,255,255,.82); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.6); color: var(--text);
+      box-shadow: var(--shadow-lg); display: flex; align-items: center; justify-content: center; transition: transform .15s, background .2s; }
+    .fab-mini:hover { transform: translateY(-2px); background: #fff; }
+    :root[data-theme="dark"] .fab-mini { background: rgba(30,41,59,.85); border-color: rgba(255,255,255,.1); color: var(--text); }
+
+    /* ── DESKTOP (≥900px): bỏ bottom nav, header kính liền mạch, FAB, panel phải ── */
+    @media (min-width: 900px) {
+      :root { --topbar-h: 60px; --stats-h: 50px; }
+      #bottomNav { display: none; }
+      #map { bottom: 0; }
+      #toast { bottom: 24px; }
+      #topBar { padding-left: 20px; padding-right: 16px; gap: 14px; border-bottom: none; }
+      .topbar-brand { font-size: 15px; }
+      .topbar-search { max-width: 380px; }
+      #statsStrip { border-top: 1px solid rgba(255,255,255,.05); padding: 0 20px; gap: 8px; }
+      .stat-chip { font-size: 12.5px; padding: 6px 12px; }
+      #fabCluster { display: flex; }
+      /* Thông tin đèn: panel trượt từ phải */
+      #infoSheet { align-items: stretch; justify-content: flex-end; background: rgba(15,23,42,.28); }
+      #infoCard { width: 390px; max-width: 42vw;
+        margin: calc(var(--topbar-h) + var(--stats-h) + 20px) 18px 18px auto;
+        max-height: calc(100vh - var(--topbar-h) - var(--stats-h) - 40px);
+        border-radius: 20px; box-shadow: var(--shadow-lg); transform: translateX(120%); padding-bottom: 0; }
+      #infoSheet.open #infoCard { transform: translateX(0); }
+      #infoCard .pc { border-radius: 20px; }
+      #infoCard .info-drag { display: none; }
+      /* Modal căn giữa thay vì dính đáy */
+      #reportModal, #zaloModal { align-items: center; padding-bottom: 0; }
+      #reportCard, #zaloCard { border-radius: 20px; max-width: 560px; }
+      @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+      /* Danh sách theo trạng thái: panel phải */
+      #slPanel { left: auto; right: 0; width: 420px; max-width: 40vw;
+        top: calc(var(--topbar-h) + var(--stats-h)); bottom: 0; max-height: none;
+        border-radius: 18px 0 0 18px; transform: translateX(120%); }
+      #slPanel.open { transform: translateX(0); }
+      .sl-handle { display: none; }
+      .mpop-card { width: min(520px, 92vw); }
+    }
+
+    /* Tablet: hiện lại tên thương hiệu cho cân đối */
+    @media (min-width: 600px) and (max-width: 899px) { .topbar-brand { display: flex; } }
   </style>
 </head>
 <body>
@@ -693,6 +743,13 @@
   <div style="position:absolute;bottom:calc(var(--safe-bottom) + 2px);left:0;right:0;text-align:center;font-size:9px;color:rgba(255,255,255,.28);pointer-events:none">© 2026 Liên hệ: 0989725507</div>
 </nav>
 
+<!-- ── FAB CLUSTER (chỉ hiện trên desktop; mobile dùng bottom nav) ── -->
+<div id="fabCluster" aria-label="Thao tác nhanh">
+  <button class="fab-mini" onclick="centerOnUserLocation()" title="Vị trí hiện tại" aria-label="Vị trí hiện tại">📍</button>
+  <button class="fab-mini" onclick="openReportModal()" title="Báo cáo" aria-label="Báo cáo hàng ngày">📊</button>
+  <button class="fab-main" id="fabAdd" onclick="startAddMarker()" title="Thêm đèn mới" aria-label="Thêm đèn mới">➕</button>
+</div>
+
 <!-- ── SIDEBAR ── -->
 <div id="sidebarOverlay" onclick="closeSidebar()"></div>
 <aside id="sidebar" aria-label="Menu điều hướng">
@@ -741,6 +798,7 @@
       <button id="sbBtnZalo" class="sb-btn" onclick="openZaloImport();closeSidebar()"><span class="bi">📥</span>Nhập từ Zalo</button>
       <button class="sb-btn" onclick="window.open('huongdan.html','_blank')"><span class="bi">📖</span>Hướng dẫn sử dụng</button>
       <button class="sb-btn" onclick="window.open('quytrinh.html','_blank')"><span class="bi">⚖️</span>Quy trình phối hợp</button>
+      <button id="sbBtnInstall" class="sb-btn" onclick="installFromMenu()"><span class="bi">📲</span>Cài ứng dụng</button>
       <button id="themeToggleBtn" class="sb-btn" onclick="toggleTheme()"><span class="bi">🌙</span><span class="lbl">Chế độ tối</span></button>
       <button class="sb-btn logout" onclick="logout()"><span class="bi">🚪</span>Đăng xuất</button>
     </div>
@@ -910,17 +968,7 @@
 
 <input id="importFileInput" type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="processFile(event)">
 
-<!-- ── PWA INSTALL BANNER (Android/Chrome) ── -->
-<div id="installBanner" role="region" aria-label="Cài đặt ứng dụng">
-  <img src="images/icon-192.png" alt="Biểu tượng ứng dụng Đèn Tắt">
-  <div class="ib-info">
-    <strong>Cài ứng dụng Đèn Tắt</strong>
-    <span>Mở nhanh, chạy toàn màn hình như app</span>
-  </div>
-  <button class="btn-install" type="button" onclick="doInstall()">Cài đặt</button>
-  <button class="btn-dismiss" type="button" onclick="dismissInstall()" aria-label="Bỏ qua lời mời cài đặt">Bỏ qua</button>
-</div>
-<!-- ── Hướng dẫn cài trên iOS Safari ── -->
+<!-- ── Hướng dẫn cài trên iOS Safari (hiện khi bấm "Cài ứng dụng" trong Menu) ── -->
 <div id="iosTip" role="region" aria-label="Hướng dẫn cài trên iOS">
   <p>Cài vào màn hình chính: nhấn <strong>Chia sẻ</strong> ↑ → chọn <strong>"Thêm vào MH chính"</strong></p>
   <button class="btn-dismiss" type="button" onclick="dismissInstall()">Đã hiểu</button>
@@ -1093,6 +1141,9 @@ function updateSidebarUser() {
   // Ẩn nút Lưu ở bottom nav
   const saveBtn = document.getElementById('saveNavBtn');
   if (saveBtn) saveBtn.style.display = isDemo ? 'none' : '';
+  // Ẩn FAB Thêm (desktop) với tài khoản demo
+  const fabAdd = document.getElementById('fabAdd');
+  if (fabAdd) fabAdd.style.display = isDemo ? 'none' : '';
 }
 
 // ── TOAST ──
@@ -1921,6 +1972,8 @@ function enableAddMode() {
   const lbl = document.getElementById('addMarkerLabel');
   icon.textContent = '🛑'; icon.style.background = 'linear-gradient(135deg,#ef4444,#b91c1c)';
   lbl.textContent = 'Dừng';
+  const fab = document.getElementById('fabAdd');
+  if (fab) { fab.textContent = '🛑'; fab.style.background = 'linear-gradient(135deg,#ef4444,#b91c1c)'; }
   showToast('Nhấp vào bản đồ để đặt vị trí đèn');
 }
 function disableAddMode() {
@@ -1929,6 +1982,8 @@ function disableAddMode() {
   const lbl = document.getElementById('addMarkerLabel');
   icon.textContent = '➕'; icon.style.background = 'linear-gradient(135deg,var(--orange),#dc2626)';
   lbl.textContent = 'Thêm';
+  const fab = document.getElementById('fabAdd');
+  if (fab) { fab.textContent = '➕'; fab.style.background = ''; }
 }
 
 function showFormAt(lat, lon) {
@@ -2918,55 +2973,33 @@ function updateThemeBtn() {
   if (lbl) lbl.textContent = dark ? 'Chế độ sáng' : 'Chế độ tối';
 }
 
-// ── PWA INSTALL ──
+// ── PWA INSTALL (KHÔNG tự bật banner — chỉ cài khi bấm "Cài ứng dụng" trong Menu) ──
 let _deferredPrompt = null;
 const _isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
-// Chỉ coi là "di động" khi màn hình cảm ứng / UA mobile → mới hiện banner cài.
-// Desktop đã có biểu tượng cài sẵn trên thanh địa chỉ Chrome, không hiện banner
-// (tránh trùng/chồng với UI của trình duyệt, gây rối khi bấm Bỏ qua / Cài đặt).
-const _isMobile = () => {
-  try { if (window.matchMedia('(pointer: coarse)').matches) return true; } catch(e) {}
-  return /android|iphone|ipad|ipod|mobile|silk|kindle/i.test(navigator.userAgent);
-};
 const _inStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-const _installDismissed = () => { try { return localStorage.getItem('dt_installDismissed') === '1'; } catch(e) { return false; } };
 
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  _deferredPrompt = e;
-  if (_isMobile() && !_inStandalone() && !_installDismissed()) {
-    setTimeout(() => { const el = document.getElementById('installBanner'); if (el) el.classList.add('show'); }, 2500);
-  }
-});
-window.addEventListener('appinstalled', () => {
-  const el = document.getElementById('installBanner'); if (el) el.classList.remove('show');
-  _deferredPrompt = null;
-  try { localStorage.setItem('dt_installDismissed', '1'); } catch(e) {}
-});
-function doInstall() {
-  if (!_deferredPrompt) {
-    // Chưa có prompt (desktop, hoặc Chrome chưa nạp kịp) → ẩn banner + hướng dẫn
-    dismissInstall();
-    showToast('Để cài: bấm biểu tượng cài ⊕ trên thanh địa chỉ của trình duyệt', 5000);
+// Chỉ bắt sự kiện để dành sẵn cho nút trong Menu, KHÔNG hiện banner tự động
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); _deferredPrompt = e; });
+window.addEventListener('appinstalled', () => { _deferredPrompt = null; });
+
+// Bấm "📲 Cài ứng dụng" trong Menu
+function installFromMenu() {
+  closeSidebar();
+  if (_inStandalone()) { showToast('✅ Ứng dụng đã được cài'); return; }
+  if (_deferredPrompt) {                      // Android/Chrome/Edge: mở hộp thoại cài
+    _deferredPrompt.prompt();
+    _deferredPrompt.userChoice.finally(() => { _deferredPrompt = null; });
     return;
   }
-  _deferredPrompt.prompt();
-  _deferredPrompt.userChoice.finally(() => {
-    _deferredPrompt = null;
-    const el = document.getElementById('installBanner'); if (el) el.classList.remove('show');
-  });
+  if (_isIos()) {                             // iOS Safari: hiện hướng dẫn thủ công
+    const el = document.getElementById('iosTip'); if (el) el.classList.add('show');
+    return;
+  }
+  showToast('Để cài: bấm biểu tượng cài ⊕ trên thanh địa chỉ của trình duyệt', 5000);
 }
 function dismissInstall() {
-  ['installBanner','iosTip'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('show'); });
-  try { localStorage.setItem('dt_installDismissed', '1'); } catch(e) {}
+  const el = document.getElementById('iosTip'); if (el) el.classList.remove('show');
 }
-// iOS Safari không có beforeinstallprompt → hiện hướng dẫn thủ công 1 lần
-function maybeShowIosTip() {
-  if (_isIos() && !_inStandalone() && !_installDismissed()) {
-    setTimeout(() => { const el = document.getElementById('iosTip'); if (el) el.classList.add('show'); }, 2500);
-  }
-}
-
 // ── SERVICE WORKER ──
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -2987,7 +3020,6 @@ window.onload = () => {
   buildExtraFilters();
   buildLegend();
   updateThemeBtn();
-  maybeShowIosTip();
   loadPhuTrach();
   document.getElementById('reportModal').addEventListener('click', e => { if (e.target === document.getElementById('reportModal')) closeReportModal(); });
   checkAuth();
