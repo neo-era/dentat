@@ -798,6 +798,7 @@
       <button id="sbBtnZalo" class="sb-btn" onclick="openZaloImport();closeSidebar()"><span class="bi">📥</span>Nhập từ Zalo</button>
       <button class="sb-btn" onclick="window.open('huongdan.html','_blank')"><span class="bi">📖</span>Hướng dẫn sử dụng</button>
       <button class="sb-btn" onclick="window.open('quytrinh.html','_blank')"><span class="bi">⚖️</span>Quy trình phối hợp</button>
+      <button id="sbBtnInstall" class="sb-btn" onclick="installFromMenu()"><span class="bi">📲</span>Cài ứng dụng</button>
       <button id="themeToggleBtn" class="sb-btn" onclick="toggleTheme()"><span class="bi">🌙</span><span class="lbl">Chế độ tối</span></button>
       <button class="sb-btn logout" onclick="logout()"><span class="bi">🚪</span>Đăng xuất</button>
     </div>
@@ -967,17 +968,7 @@
 
 <input id="importFileInput" type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="processFile(event)">
 
-<!-- ── PWA INSTALL BANNER (Android/Chrome) ── -->
-<div id="installBanner" role="region" aria-label="Cài đặt ứng dụng">
-  <img src="images/icon-192.png" alt="Biểu tượng ứng dụng Đèn Tắt">
-  <div class="ib-info">
-    <strong>Cài ứng dụng Đèn Tắt</strong>
-    <span>Mở nhanh, chạy toàn màn hình như app</span>
-  </div>
-  <button class="btn-install" type="button" onclick="doInstall()">Cài đặt</button>
-  <button class="btn-dismiss" type="button" onclick="dismissInstall()" aria-label="Bỏ qua lời mời cài đặt">Bỏ qua</button>
-</div>
-<!-- ── Hướng dẫn cài trên iOS Safari ── -->
+<!-- ── Hướng dẫn cài trên iOS Safari (hiện khi bấm "Cài ứng dụng" trong Menu) ── -->
 <div id="iosTip" role="region" aria-label="Hướng dẫn cài trên iOS">
   <p>Cài vào màn hình chính: nhấn <strong>Chia sẻ</strong> ↑ → chọn <strong>"Thêm vào MH chính"</strong></p>
   <button class="btn-dismiss" type="button" onclick="dismissInstall()">Đã hiểu</button>
@@ -2982,55 +2973,33 @@ function updateThemeBtn() {
   if (lbl) lbl.textContent = dark ? 'Chế độ sáng' : 'Chế độ tối';
 }
 
-// ── PWA INSTALL ──
+// ── PWA INSTALL (KHÔNG tự bật banner — chỉ cài khi bấm "Cài ứng dụng" trong Menu) ──
 let _deferredPrompt = null;
 const _isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
-// Chỉ coi là "di động" khi màn hình cảm ứng / UA mobile → mới hiện banner cài.
-// Desktop đã có biểu tượng cài sẵn trên thanh địa chỉ Chrome, không hiện banner
-// (tránh trùng/chồng với UI của trình duyệt, gây rối khi bấm Bỏ qua / Cài đặt).
-const _isMobile = () => {
-  try { if (window.matchMedia('(pointer: coarse)').matches) return true; } catch(e) {}
-  return /android|iphone|ipad|ipod|mobile|silk|kindle/i.test(navigator.userAgent);
-};
 const _inStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-const _installDismissed = () => { try { return localStorage.getItem('dt_installDismissed') === '1'; } catch(e) { return false; } };
 
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  _deferredPrompt = e;
-  if (_isMobile() && !_inStandalone() && !_installDismissed()) {
-    setTimeout(() => { const el = document.getElementById('installBanner'); if (el) el.classList.add('show'); }, 2500);
-  }
-});
-window.addEventListener('appinstalled', () => {
-  const el = document.getElementById('installBanner'); if (el) el.classList.remove('show');
-  _deferredPrompt = null;
-  try { localStorage.setItem('dt_installDismissed', '1'); } catch(e) {}
-});
-function doInstall() {
-  if (!_deferredPrompt) {
-    // Chưa có prompt (desktop, hoặc Chrome chưa nạp kịp) → ẩn banner + hướng dẫn
-    dismissInstall();
-    showToast('Để cài: bấm biểu tượng cài ⊕ trên thanh địa chỉ của trình duyệt', 5000);
+// Chỉ bắt sự kiện để dành sẵn cho nút trong Menu, KHÔNG hiện banner tự động
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); _deferredPrompt = e; });
+window.addEventListener('appinstalled', () => { _deferredPrompt = null; });
+
+// Bấm "📲 Cài ứng dụng" trong Menu
+function installFromMenu() {
+  closeSidebar();
+  if (_inStandalone()) { showToast('✅ Ứng dụng đã được cài'); return; }
+  if (_deferredPrompt) {                      // Android/Chrome/Edge: mở hộp thoại cài
+    _deferredPrompt.prompt();
+    _deferredPrompt.userChoice.finally(() => { _deferredPrompt = null; });
     return;
   }
-  _deferredPrompt.prompt();
-  _deferredPrompt.userChoice.finally(() => {
-    _deferredPrompt = null;
-    const el = document.getElementById('installBanner'); if (el) el.classList.remove('show');
-  });
+  if (_isIos()) {                             // iOS Safari: hiện hướng dẫn thủ công
+    const el = document.getElementById('iosTip'); if (el) el.classList.add('show');
+    return;
+  }
+  showToast('Để cài: bấm biểu tượng cài ⊕ trên thanh địa chỉ của trình duyệt', 5000);
 }
 function dismissInstall() {
-  ['installBanner','iosTip'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('show'); });
-  try { localStorage.setItem('dt_installDismissed', '1'); } catch(e) {}
+  const el = document.getElementById('iosTip'); if (el) el.classList.remove('show');
 }
-// iOS Safari không có beforeinstallprompt → hiện hướng dẫn thủ công 1 lần
-function maybeShowIosTip() {
-  if (_isIos() && !_inStandalone() && !_installDismissed()) {
-    setTimeout(() => { const el = document.getElementById('iosTip'); if (el) el.classList.add('show'); }, 2500);
-  }
-}
-
 // ── SERVICE WORKER ──
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -3051,7 +3020,6 @@ window.onload = () => {
   buildExtraFilters();
   buildLegend();
   updateThemeBtn();
-  maybeShowIosTip();
   loadPhuTrach();
   document.getElementById('reportModal').addEventListener('click', e => { if (e.target === document.getElementById('reportModal')) closeReportModal(); });
   checkAuth();
