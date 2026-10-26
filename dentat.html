@@ -3000,11 +3000,26 @@ function installFromMenu() {
 function dismissInstall() {
   const el = document.getElementById('iosTip'); if (el) el.classList.remove('show');
 }
-// ── SERVICE WORKER ──
+// ── SERVICE WORKER + TỰ CẬP NHẬT ──
+// Khi có bản mới: SW mới tự kích hoạt (skipWaiting + clients.claim trong sw.js)
+// → controllerchange → tự nạp lại trang để lấy bản mới, không cần xóa cache tay.
 if ('serviceWorker' in navigator) {
+  let _hadController = !!navigator.serviceWorker.controller;  // đã có SW cũ điều khiển?
+  let _refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (_refreshing) return;
+    if (!_hadController) { _hadController = true; return; }   // lần cài đầu → không reload
+    _refreshing = true;
+    try { showToast('🔄 Đang cập nhật bản mới…'); } catch(e) {}
+    setTimeout(() => window.location.reload(), 300);
+  });
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')
-      .then(r => console.log('SW:', r.scope))
+      .then(reg => {
+        console.log('SW:', reg.scope);
+        reg.update();                                         // kiểm tra bản mới ngay khi mở
+        setInterval(() => { try { reg.update(); } catch(e) {} }, 30 * 60 * 1000);  // và mỗi 30 phút
+      })
       .catch(e => console.warn('SW failed:', e));
   });
 }
